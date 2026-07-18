@@ -1,11 +1,10 @@
-/*
- * Linux (X11) Window implementation
- */
 #include "window.hpp"
 #include "../Logger/Logger.hpp"
+
+#define VK_USE_PLATFORM_XLIB_KHR
+#include <vulkan/vulkan.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include <string>
 
 namespace rtk 
 {
@@ -47,22 +46,13 @@ namespace rtk
         }
     }
 
-    void Window::display(RGB clearColor)
-    {
-    }
-
-    uint64_t Window::getSurface() const
-    {
-        return _surface;
-    }
+    void Window::display(RGB clearColor) {}
 
     bool Window::pollEvents()
     {
         if (!_isOpen || !_display) return false;
-
         Display* dpy = (Display*)_display;
         XEvent event;
-
         while (XPending(dpy) > 0) {
             XNextEvent(dpy, &event);
             if (event.type == ClientMessage) {
@@ -75,4 +65,28 @@ namespace rtk
         }
         return _isOpen;
     }
+
+    std::vector<const char*> Window::getRequiredExtensions() const
+    {
+        return { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_XLIB_SURFACE_EXTENSION_NAME };
+    }
+
+    void Window::createSurface(void* vkInstance)
+    {
+        _vkInstance = vkInstance;
+        VkXlibSurfaceCreateInfoKHR createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+        createInfo.dpy = (Display*)_display;
+        createInfo.window = (::Window)_windowHandle;
+
+        VkSurfaceKHR surface;
+        if (vkCreateXlibSurfaceKHR((VkInstance)vkInstance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
+            LOG_ERROR("Failed to create Xlib Vulkan surface");
+        } else {
+            _surface = (uint64_t)surface;
+            LOG_INFO("Xlib Vulkan surface created");
+        }
+    }
+
+    uint64_t Window::getSurface() const { return _surface; }
 }

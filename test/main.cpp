@@ -3,7 +3,7 @@
 
 int main()
 {
-    rtk::Window window(800, 600, "Vulkan");
+    rtk::Window window(1920, 1080, "Vulkan");
     rtk::Render render(window);
 
     while (window.pollEvents()) {

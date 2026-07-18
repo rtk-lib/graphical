@@ -14,6 +14,9 @@ list(REMOVE_ITEM SRC_FILES
 add_executable(graphical_test ${TEST_FILES})
 target_include_directories(graphical_test PRIVATE include src)
 
+find_package(Vulkan REQUIRED)
+target_link_libraries(graphical_test PRIVATE Vulkan::Vulkan)
+
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     list(APPEND SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowLinux.cpp")
     find_package(X11 REQUIRED)

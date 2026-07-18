@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 namespace rtk 
 {
@@ -11,7 +12,7 @@ namespace rtk
         uint8_t r, g, b;
     };
 
-    /**
+    /*
      * @brief Cross-platform Window class.
      * 
      * This class abstracts the OS-specific window creation and event management.
@@ -40,11 +41,8 @@ namespace rtk
              */
             void display(RGB clearColor = {0, 0, 0});
 
-            /**
-             * @brief Get the Vulkan surface handle.
-             * 
-             * @return uint64_t The surface handle cast to uint64_t.
-             */
+            std::vector<const char*> getRequiredExtensions() const;
+            void createSurface(void* vkInstance);
             uint64_t getSurface() const;
 
             /**
