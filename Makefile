@@ -4,6 +4,7 @@ all:
 	cmake -B build -G Ninja
 	cmake --build build
 	cp build/$(NAME) ./$(NAME)
+	cp -r build/shaders ./shaders
 
 clean:
 	rm -rf build

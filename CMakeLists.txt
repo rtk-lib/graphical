@@ -30,3 +30,26 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
 endif()
 
 target_sources(graphical_test PRIVATE ${SRC_FILES})
+
+find_program(GLSLC_COMPILER glslc)
+if(GLSLC_COMPILER)
+    file(GLOB_RECURSE SHADERS "src/shaders/*.vert" "src/shaders/*.frag")
+    set(SHADER_OUTPUTS "")
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/shaders")
+    foreach(SHADER ${SHADERS})
+        get_filename_component(SHADER_NAME ${SHADER} NAME)
+        set(OUTPUT_SPV "${CMAKE_BINARY_DIR}/shaders/${SHADER_NAME}.spv")
+        add_custom_command(
+            OUTPUT ${OUTPUT_SPV}
+            COMMAND ${GLSLC_COMPILER} ${SHADER} -o ${OUTPUT_SPV}
+            DEPENDS ${SHADER}
+            COMMENT "Compiling shader ${SHADER_NAME}"
+        )
+        list(APPEND SHADER_OUTPUTS ${OUTPUT_SPV})
+    endforeach()
+    
+    add_custom_target(compile_shaders ALL DEPENDS ${SHADER_OUTPUTS})
+    add_dependencies(graphical_test compile_shaders)
+else()
+    message(WARNING "glslc not found. Shaders will not be compiled automatically.")
+endif()
