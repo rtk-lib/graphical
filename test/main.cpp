@@ -4,7 +4,7 @@
 #include <time.h>
 #include <unistd.h>
 
-
+/*Test Open Window*/
 int main()
 {
     rtk::Window window(1920, 1080, "Vulkan");
@@ -15,7 +15,6 @@ int main()
         sleep(1);
         render.draw({0, 0, 0});
         sleep(1);
-
     }
 
     return 0;
