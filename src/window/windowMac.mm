@@ -15,8 +15,30 @@
 }
 @end
 
+#define VK_USE_PLATFORM_METAL_EXT
+#include <vulkan/vulkan.h>
+#import <QuartzCore/CAMetalLayer.h>
+
+
+
 namespace rtk 
 {
+    void rtk::Window::createSurface(VkInstance instance, VkSurfaceKHR* surface) {
+        NSWindow* ns_window = (NSWindow*)this->getNativeWindow(); 
+        NSView* view = ns_window.contentView;
+
+        [view setWantsLayer:YES];
+        view.layer = [CAMetalLayer layer];
+
+        VkMetalSurfaceCreateInfoEXT createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
+        createInfo.pLayer = view.layer;
+
+        if (vkCreateMetalSurfaceEXT(instance, &createInfo, nullptr, surface) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to link metal and vulkan");
+        }
+    }
+
     Window::Window(uint32_t width, uint32_t height, const char* title) : _isOpen(true)
     {
         [NSApplication sharedApplication];

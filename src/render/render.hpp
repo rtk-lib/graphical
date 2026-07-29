@@ -81,6 +81,7 @@ namespace rtk
         glm::mat4 proj;
     };
 
+    /*God Class ... */
     class Render
     {
         public:
