@@ -402,8 +402,8 @@ namespace rtk
             extent = swapChainSupport.capabilities.currentExtent;
         } else {
             extent = {800, 600};
-            extent.width = std::clamp(extent.width, swapChainSupport.capabilities.minImageExtent.width, swapChainSupport.capabilities.maxImageExtent.width);
-            extent.height = std::clamp(extent.height, swapChainSupport.capabilities.minImageExtent.height, swapChainSupport.capabilities.maxImageExtent.height);
+            extent.width = glm::clamp(extent.width, swapChainSupport.capabilities.minImageExtent.width, swapChainSupport.capabilities.maxImageExtent.width);
+            extent.height = glm::clamp(extent.height, swapChainSupport.capabilities.minImageExtent.height, swapChainSupport.capabilities.maxImageExtent.height);
         }
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
