@@ -4,6 +4,11 @@
 #include "window.hpp"
 #include "../Logger/Logger.hpp"
 #import <Cocoa/Cocoa.h>
+#import <QuartzCore/CAMetalLayer.h>
+
+#define VK_USE_PLATFORM_METAL_EXT
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_metal.h>
 
 @interface RtkWindowDelegate : NSObject <NSWindowDelegate>
 @property (assign) bool* isOpen;
@@ -23,7 +28,7 @@
 
 namespace rtk 
 {
-    void rtk::Window::createSurface(VkInstance instance, VkSurfaceKHR* surface) {
+    void Window::createSurface(VkInstance instance, VkSurfaceKHR* surface) {
         NSWindow* ns_window = (NSWindow*)this->getNativeWindow(); 
         NSView* view = ns_window.contentView;
 
@@ -51,6 +56,8 @@ namespace rtk
                                              defer:NO];
         
         [window setTitle:[NSString stringWithUTF8String:title]];
+        [[window contentView] setWantsLayer:YES];
+        [[window contentView] setLayer:[CAMetalLayer layer]];
         [window makeKeyAndOrderFront:nil];
         [NSApp activateIgnoringOtherApps:YES];
         
@@ -84,6 +91,31 @@ namespace rtk
     uint64_t Window::getSurface() const
     {
         return _surface;
+    }
+
+    std::vector<const char*> Window::getRequiredExtensions() const
+    {
+        return { VK_KHR_SURFACE_EXTENSION_NAME, VK_EXT_METAL_SURFACE_EXTENSION_NAME };
+    }
+
+    void Window::createSurface(void* vkInstance)
+    {
+        _vkInstance = vkInstance;
+
+        NSWindow* window = (__bridge NSWindow*)(void*)_windowHandle;
+        CAMetalLayer* layer = (CAMetalLayer*)[[window contentView] layer];
+
+        VkMetalSurfaceCreateInfoEXT createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
+        createInfo.pLayer = layer;
+
+        VkSurfaceKHR surface;
+        if (vkCreateMetalSurfaceEXT((VkInstance)vkInstance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
+            LOG_ERROR("Failed to create Metal Vulkan surface");
+        } else {
+            _surface = (uint64_t)surface;
+            LOG_INFO("Metal Vulkan surface created");
+        }
     }
 
     bool Window::pollEvents()
