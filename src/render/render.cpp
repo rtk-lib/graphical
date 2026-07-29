@@ -148,7 +148,8 @@ namespace rtk
     void Render::createInstance()
     {
         if (enableValidationLayers && !checkValidationLayerSupport()) {
-            throw std::runtime_error("validation layers requested, but not available!");
+            LOG_WARN("Validation layers requested, but not available! Disabling them.");
+            enableValidationLayers = false;
         }
 
         VkApplicationInfo appInfo{};
