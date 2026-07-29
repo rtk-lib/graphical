@@ -142,6 +142,12 @@ namespace rtk
         if (enableValidationLayers) {
             // extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
+#ifdef __APPLE__
+#ifndef VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+#define VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME "VK_KHR_portability_enumeration"
+#endif
+        extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+#endif
         return extensions;
     }
 
@@ -167,6 +173,12 @@ namespace rtk
         createInfo.pApplicationInfo = &appInfo;
         createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
+#ifdef __APPLE__
+#ifndef VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
+#define VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR 0x00000001
+#endif
+        createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
 
         if (enableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
@@ -323,6 +335,11 @@ namespace rtk
         std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
+#ifdef __APPLE__
+        if (isExtSupported("VK_KHR_portability_subset")) {
+            deviceExtensions.push_back("VK_KHR_portability_subset");
+        }
+#endif
 
         if (supportRT) {
             LOG_INFO("Ray Tracing supported, enabling RT extensions");
