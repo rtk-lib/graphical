@@ -6,6 +6,8 @@
 
 #include "../sprite/sprite.hpp"
 
+#include "../Logger/Logger.hpp"
+
 #include <time.h>
 #include <unistd.h>
 
@@ -31,6 +33,7 @@ int main()
     rtk::Event rtkEvent;
 
     while (window.pollEvents(rtkEvent)) {
+        LOG_INFO(rtkEvent.isKeyPressed(rtk::Key::A) ? "TRUE" : "FALSE");
         spriteRenderer.beginFrame();
         spriteRenderer.drawSprite({100.0f, 0.0f}, {1000.0f, 1000.0f}, 0.0f, testTexId);
         spriteRenderer.drawSprite(glm::vec2(sprite.position.x, sprite.position.y), {100.0f, 100.0f}, 0.0f, testTexId);
