@@ -1,3 +1,9 @@
 build
 graphical_test
 shaders
+stb_*
+CMakeFiles
+Cmake_install.cmake
+CMakeCache.txt
+
+*.png

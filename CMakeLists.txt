@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
 project(graphical_test)
 
+set(STB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/stb")
+set(STB_IMAGE_HEADER "${STB_DIR}/stb_image.h")
+if(NOT EXISTS "${STB_IMAGE_HEADER}")
+    message(STATUS "Downloading stb_image.h...")
+    file(DOWNLOAD "https://raw.githubusercontent.com/nothings/stb/master/stb_image.h" "${STB_IMAGE_HEADER}")
+endif()
+
 file(GLOB_RECURSE SRC_FILES "src/*.cpp" "src/*.mm")
 file(GLOB_RECURSE TEST_FILES "test/*.cpp")
 
@@ -12,7 +19,7 @@ list(REMOVE_ITEM SRC_FILES
 )
 
 add_executable(graphical_test ${TEST_FILES})
-target_include_directories(graphical_test PRIVATE include src)
+target_include_directories(graphical_test PRIVATE include src src/stb)
 
 find_package(Vulkan REQUIRED)
 target_link_libraries(graphical_test PRIVATE Vulkan::Vulkan)

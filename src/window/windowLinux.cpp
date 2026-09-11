@@ -20,7 +20,7 @@ namespace rtk
         int screen = DefaultScreen(dpy);
         ::Window root = RootWindow(dpy, screen);
 
-        ::Window win = XCreateSimpleWindow(dpy, root, 0, 0, width, height, 1, BlackPixel(dpy, screen), WhitePixel(dpy, screen));
+        ::Window win = XCreateSimpleWindow(dpy, root, 0, 0, width, height, 1, BlackPixel(dpy, screen), BlackPixel(dpy, screen));
         XStoreName(dpy, win, title);
 
         XSelectInput(dpy, win, ExposureMask | KeyPressMask | StructureNotifyMask);
