@@ -10,7 +10,8 @@ namespace math
 {
     struct vec2
     {
-        float x, y;
+        float x = 0;
+        float y = 0;
     };
     
 }
