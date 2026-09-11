@@ -2,6 +2,7 @@
 #include "../src/render/VulkanContext.hpp"
 #include "../src/texture/textureManager.hpp"
 #include "../src/render/SpriteRenderer.hpp"
+#include "../src/event/event.hpp"
 
 #include "../sprite/sprite.hpp"
 
@@ -18,6 +19,7 @@ int main()
     rtk::TextureManager textureManager(context);
     rtk::SpriteRenderer spriteRenderer(context, textureManager);
 
+
     uint32_t testTexId = textureManager.loadTexture("texture.png");
 
 
@@ -26,7 +28,9 @@ int main()
     sprite.position = {1000.0f, 0.0f};
     
 
-    while (window.pollEvents()) {
+    rtk::Event rtkEvent;
+
+    while (window.pollEvents(rtkEvent)) {
         spriteRenderer.beginFrame();
         spriteRenderer.drawSprite({100.0f, 0.0f}, {1000.0f, 1000.0f}, 0.0f, testTexId);
         spriteRenderer.drawSprite(glm::vec2(sprite.position.x, sprite.position.y), {100.0f, 100.0f}, 0.0f, testTexId);

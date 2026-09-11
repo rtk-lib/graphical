@@ -124,11 +124,11 @@ namespace rtk {
 
         VkBuffer _vertexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory _vertexBufferMemory = VK_NULL_HANDLE;
-        void* _mappedVertices = nullptr;
+        void *_mappedVertices = nullptr;
 
         VkBuffer _indexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory _indexBufferMemory = VK_NULL_HANDLE;
-        void* _mappedIndices = nullptr;
+        void *_mappedIndices = nullptr;
 
         std::vector<SpriteVertex> _cpuVertices;
         std::vector<uint32_t> _cpuIndices;

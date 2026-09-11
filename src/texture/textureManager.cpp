@@ -167,7 +167,7 @@ namespace rtk {
 
         vkBindBufferMemory(device, stagingBuffer, stagingBufferMemory, 0);
 
-        void* data;
+        void *data;
         vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
         memcpy(data, pixels, static_cast<size_t>(imageSize));
         vkUnmapMemory(device, stagingBufferMemory);

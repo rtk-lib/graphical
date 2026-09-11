@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <vector>
 
+#include "../event/event.hpp"
+
 namespace rtk 
 {
     /**
@@ -42,7 +44,7 @@ namespace rtk
             void display(RGB clearColor = {0, 0, 0});
 
             std::vector<const char*> getRequiredExtensions() const;
-            void createSurface(void* vkInstance);
+            void createSurface(void *vkInstance);
             uint64_t getSurface() const;
 
             /**
@@ -51,13 +53,13 @@ namespace rtk
              * @return true if the window is still open and running.
              * @return false if the window received a close request.
              */
-            bool pollEvents();
+            bool pollEvents(rtk::Event &rtkEvent);
 
         private:
-            void* _display;
+            void *_display;
             uint64_t _windowHandle;
             
-            void* _vkInstance;
+            void *_vkInstance;
             uint64_t _surface;
             bool _isOpen;
     };

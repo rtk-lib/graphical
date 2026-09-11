@@ -2,13 +2,15 @@
 
 #include "../fwd.hpp"
 
+#define RTK_KEYS_TAB_SIZE 256
+
 namespace rtk {
 
     class Event
     {
         private:
-            bool keyPressed[256];
-            bool keyReleased[256];
+            bool _keyPressed[RTK_KEYS_TAB_SIZE];
+            bool _keyReleased[RTK_KEYS_TAB_SIZE];
         public:
             /**
              *  @brief make Window a friend of Event
