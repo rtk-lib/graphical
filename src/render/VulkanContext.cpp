@@ -6,7 +6,7 @@
 
 namespace rtk
 {
-    VulkanContext::VulkanContext(Window& window) : _window(window)
+    VulkanContext::VulkanContext(Window& window) : _window(window), _width(window.getWindowSizeWidth()), _height(window.getWindowSizeHeight())
     {
         createInstance();
         createSurface();
@@ -386,7 +386,7 @@ namespace rtk
         if (capabilities.currentExtent.width != UINT32_MAX)
             return capabilities.currentExtent;
         else {
-            VkExtent2D actualExtent = {800, 600};
+            VkExtent2D actualExtent = {_width, _height};
             actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
             actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
             return actualExtent;

@@ -10,7 +10,7 @@
 
 namespace rtk 
 {
-    Window::Window(uint32_t width, uint32_t height, const char* title) : _isOpen(true)
+    Window::Window(uint32_t width, uint32_t height, const char* title) : _isOpen(true), _width(width), _height(height)
     {
         Display* dpy = XOpenDisplay(NULL);
         if (!dpy) {

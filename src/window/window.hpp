@@ -29,7 +29,7 @@ namespace rtk
              * @param height The height of the window.
              * @param title The title of the window.
              */
-            Window(uint32_t width = 800, uint32_t height = 600, const char* title = "rtk-lib");
+            Window(uint32_t width = 1920, uint32_t height = 1080, const char* title = "rtk-lib");
 
             /**
              * @brief Destroy the Window instance.
@@ -55,6 +55,9 @@ namespace rtk
              */
             bool pollEvents(rtk::Event &rtkEvent);
 
+            const uint32_t &getWindowSizeWidth(){return _width;};
+            const uint32_t &getWindowSizeHeight(){return _height;};
+
         private:
             void *_display;
             uint64_t _windowHandle;
@@ -62,5 +65,8 @@ namespace rtk
             void *_vkInstance;
             uint64_t _surface;
             bool _isOpen;
+
+            const uint32_t _width;
+            const uint32_t _height;
     };
 }

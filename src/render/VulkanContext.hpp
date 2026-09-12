@@ -97,6 +97,9 @@ namespace rtk
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
 
+        const uint32_t _width;
+        const uint32_t _height;
+
 #ifdef NDEBUG
         const bool _enableValidationLayers = false;
 #else
