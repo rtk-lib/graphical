@@ -31,7 +31,7 @@ namespace rtk
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    Window::Window(uint32_t width, uint32_t height, const char* title) : _isOpen(true)
+    Window::Window(uint32_t width, uint32_t height, const char* title) : _isOpen(true), _width(width), _height(height)
     {
         HINSTANCE hInstance = GetModuleHandle(NULL);
         const char* CLASS_NAME = "rtk_window_class";

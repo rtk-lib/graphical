@@ -7,7 +7,7 @@
 
 namespace rtk {
 
-    SpriteRenderer::SpriteRenderer(const VulkanContext& context, const TextureManager& textureManager)
+    SpriteRenderer::SpriteRenderer(VulkanContext& context, const TextureManager& textureManager)
         : _context(context), _textureManager(textureManager)
     {
         createRenderPass();
@@ -290,8 +290,10 @@ namespace rtk {
 
         VkResult result = vkAcquireNextImageKHR(device, _context.getSwapChain(), UINT64_MAX, _imageAvailableSemaphores[_currentFrame], VK_NULL_HANDLE, &_imageIndex);
 
-        if (result == VK_ERROR_OUT_OF_DATE_KHR)
+        if (result == VK_ERROR_OUT_OF_DATE_KHR){
+            recreateSwapChain();
             return;
+        }
         else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
             throw std::runtime_error("Failed to acquire swap chain image");
 
@@ -325,7 +327,7 @@ namespace rtk {
         _isFrameStarted = true;
     }
 
-    void SpriteRenderer::drawSprite(const glm::vec2& position, const glm::vec2& size, float rotation, uint32_t textureId)
+    void SpriteRenderer::drawSprite(const glm::vec2& position, const glm::vec2& size, float rotation, const uint32_t textureId)
     {
         if (!_isFrameStarted || _quadCount >= MAX_SPRITES)
             return;
@@ -377,9 +379,9 @@ namespace rtk {
 
         VkViewport viewport{};
         viewport.x = 0.0f;
-        viewport.y = 0.0f;
+        viewport.y = (float)_context.getSwapChainExtent().height;
         viewport.width = (float)_context.getSwapChainExtent().width;
-        viewport.height = (float)_context.getSwapChainExtent().height;
+        viewport.height = -(float)_context.getSwapChainExtent().height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -458,7 +460,7 @@ namespace rtk {
 
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-            
+            recreateSwapChain();
         } else if (result != VK_SUCCESS)
             throw std::runtime_error("Failed to present swap chain image");
 
@@ -517,5 +519,18 @@ namespace rtk {
         file.close();
 
         return buffer;
+    }
+
+    void SpriteRenderer::recreateSwapChain()
+    {
+        vkDeviceWaitIdle(_context.getDevice());
+
+        for (auto framebuffer : _swapChainFramebuffers) {
+            vkDestroyFramebuffer(_context.getDevice(), framebuffer, nullptr);
+        }
+        _swapChainFramebuffers.clear();
+        _context.recreateSwapChain();
+
+        createFramebuffers();
     }
 }

@@ -1,6 +1,8 @@
 #include "window.hpp"
 #include "../Logger/Logger.hpp"
 
+#include <cstring>
+
 #define VK_USE_PLATFORM_XLIB_KHR
 #include <vulkan/vulkan.h>
 #include <X11/Xlib.h>
@@ -8,7 +10,7 @@
 
 namespace rtk 
 {
-    Window::Window(uint32_t width, uint32_t height, const char* title) : _isOpen(true)
+    Window::Window(uint32_t width, uint32_t height, const char* title) : _isOpen(true), _width(width), _height(height)
     {
         Display* dpy = XOpenDisplay(NULL);
         if (!dpy) {
@@ -48,21 +50,52 @@ namespace rtk
 
     void Window::display(RGB clearColor) {}
 
-    bool Window::pollEvents()
+    bool Window::pollEvents(rtk::Event& rtkEvent)
     {
-        if (!_isOpen || !_display) return false;
-        Display* dpy = (Display*)_display;
-        XEvent event;
+        if (!_isOpen || !_display)
+            return false;
+
+        Display* dpy = static_cast<Display*>(_display);
+        XEvent xEvent;
+
+        memset(rtkEvent._keyPressed, 0, RTK_KEYS_TAB_SIZE);
+        memset(rtkEvent._keyReleased, 0, RTK_KEYS_TAB_SIZE);
+
         while (XPending(dpy) > 0) {
-            XNextEvent(dpy, &event);
-            if (event.type == ClientMessage) {
-                if ((Atom)event.xclient.data.l[0] == XInternAtom(dpy, "WM_DELETE_WINDOW", False)) {
+            XNextEvent(dpy, &xEvent);
+
+            switch (xEvent.type) {
+                case ClientMessage:
+                    if (static_cast<Atom>(xEvent.xclient.data.l[0]) ==
+                        XInternAtom(dpy, "WM_DELETE_WINDOW", False)) {
+                        _isOpen = false;
+                    }
+                    break;
+
+                case DestroyNotify:
                     _isOpen = false;
+                    break;
+
+                case KeyPress: {
+                    const unsigned int keycode = xEvent.xkey.keycode;
+
+                    if (keycode < RTK_KEYS_TAB_SIZE)
+                        rtkEvent._keyPressed[keycode] = true;
+
+                    break;
                 }
-            } else if (event.type == DestroyNotify) {
-                _isOpen = false;
+
+                case KeyRelease: {
+                    const unsigned int keycode = xEvent.xkey.keycode;
+
+                    if (keycode < RTK_KEYS_TAB_SIZE)
+                        rtkEvent._keyPressed[keycode] = false;
+
+                    break;
+                }
             }
         }
+
         return _isOpen;
     }
 
@@ -71,7 +104,7 @@ namespace rtk
         return { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_XLIB_SURFACE_EXTENSION_NAME };
     }
 
-    void Window::createSurface(void* vkInstance)
+    void Window::createSurface(void *vkInstance)
     {
         _vkInstance = vkInstance;
         VkXlibSurfaceCreateInfoKHR createInfo{};

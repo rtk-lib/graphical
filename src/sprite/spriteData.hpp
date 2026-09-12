@@ -6,14 +6,13 @@
 #include <vulkan/vulkan.h>
 #include <array>
 
-namespace math 
+namespace math
 {
     struct vec2
     {
         float x = 0;
         float y = 0;
     };
-    
 }
 
 namespace rtk
@@ -23,12 +22,12 @@ namespace rtk
      * 32 byte struct btw
     */
     struct SpriteData {
-        math::vec2 position;
-        math::vec2 scale;
+        glm::vec2 position;
+        glm::vec2 scale;
         float rotation;
-        
+
         uint32_t textureId;
-        uint32_t colorTint; 
+        uint32_t colorTint;
 
         uint32_t flags;
     };
@@ -54,7 +53,7 @@ namespace rtk {
 
         /*Position*/
         attributes[0].binding = 1;
-        attributes[0].location = 3; 
+        attributes[0].location = 3;
         attributes[0].format = VK_FORMAT_R32G32_SFLOAT;
         attributes[0].offset = offsetof(SpriteData, position);
 

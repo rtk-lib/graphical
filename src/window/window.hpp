@@ -3,13 +3,25 @@
 #include <cstdint>
 #include <vector>
 
+#include "../event/event.hpp"
+
 namespace rtk 
 {
     /**
      * @brief Simple struct representing an RGB color.
      */
-    struct RGB {
-        uint8_t r, g, b;
+    class RGB {
+        public:
+            uint8_t r, g, b;
+
+            [[nodiscard]]
+            constexpr uint32_t toRGBA(uint8_t alpha = 255) const noexcept
+            {
+                return static_cast<uint32_t>(r)
+                    | (static_cast<uint32_t>(g) << 8)
+                    | (static_cast<uint32_t>(b) << 16)
+                    | (static_cast<uint32_t>(alpha) << 24);
+            }
     };
 
     /*
@@ -27,7 +39,7 @@ namespace rtk
              * @param height The height of the window.
              * @param title The title of the window.
              */
-            Window(uint32_t width = 800, uint32_t height = 600, const char* title = "rtk-lib");
+            Window(uint32_t width = 1920, uint32_t height = 1080, const char* title = "rtk-lib");
 
             /**
              * @brief Destroy the Window instance.
@@ -42,7 +54,7 @@ namespace rtk
             void display(RGB clearColor = {0, 0, 0});
 
             std::vector<const char*> getRequiredExtensions() const;
-            void createSurface(void* vkInstance);
+            void createSurface(void *vkInstance);
             uint64_t getSurface() const;
 
             /**
@@ -51,14 +63,20 @@ namespace rtk
              * @return true if the window is still open and running.
              * @return false if the window received a close request.
              */
-            bool pollEvents();
+            bool pollEvents(rtk::Event &rtkEvent);
+
+            const uint32_t &getWindowSizeWidth(){return _width;};
+            const uint32_t &getWindowSizeHeight(){return _height;};
 
         private:
-            void* _display;
+            void *_display;
             uint64_t _windowHandle;
             
-            void* _vkInstance;
+            void *_vkInstance;
             uint64_t _surface;
             bool _isOpen;
+
+            const uint32_t _width;
+            const uint32_t _height;
     };
 }

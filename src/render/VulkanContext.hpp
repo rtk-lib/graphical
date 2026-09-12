@@ -49,7 +49,11 @@ namespace rtk
         VkCommandBuffer beginSingleTimeCommands() const;
         void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
+        void recreateSwapChain();
+
     private:
+        void cleanupSwapChain();
+
         void createInstance();
         void createSurface();
         void pickPhysicalDevice();
@@ -92,6 +96,9 @@ namespace rtk
         const std::vector<const char*> _deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
+
+        const uint32_t _width;
+        const uint32_t _height;
 
 #ifdef NDEBUG
         const bool _enableValidationLayers = false;

@@ -79,7 +79,7 @@ namespace rtk {
          * @param context The VulkanContext reference.
          * @param textureManager The TextureManager reference.
          */
-        SpriteRenderer(const VulkanContext& context, const TextureManager& textureManager);
+        SpriteRenderer(VulkanContext& context, const TextureManager& textureManager);
 
         /**
          * @brief Destroys the SpriteRenderer and releases Vulkan resources.
@@ -102,7 +102,7 @@ namespace rtk {
          * @param rotation The rotation of the sprite in degrees.
          * @param textureId The ID of the texture from the bindless array.
          */
-        void drawSprite(const glm::vec2& position, const glm::vec2& size, float rotation, uint32_t textureId);
+        void drawSprite(const glm::vec2& position, const glm::vec2& size, float rotation, const uint32_t textureId);
 
         /**
          * @brief Ends the current frame, flushing all batched sprites to the GPU and presenting.
@@ -110,7 +110,7 @@ namespace rtk {
         void endFrame();
 
     private:
-        const VulkanContext& _context;
+        VulkanContext& _context;
         const TextureManager& _textureManager;
 
         VkRenderPass _renderPass = VK_NULL_HANDLE;
@@ -124,11 +124,11 @@ namespace rtk {
 
         VkBuffer _vertexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory _vertexBufferMemory = VK_NULL_HANDLE;
-        void* _mappedVertices = nullptr;
+        void *_mappedVertices = nullptr;
 
         VkBuffer _indexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory _indexBufferMemory = VK_NULL_HANDLE;
-        void* _mappedIndices = nullptr;
+        void *_mappedIndices = nullptr;
 
         std::vector<SpriteVertex> _cpuVertices;
         std::vector<uint32_t> _cpuIndices;
@@ -154,5 +154,8 @@ namespace rtk {
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
         VkShaderModule createShaderModule(const std::vector<char>& code);
         std::vector<char> readFile(const std::string& filename);
+
+        void recreateSwapChain();
+
     };
 }

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "../render/VulkanContext.hpp"
+
+#include "texture.hpp"
+
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -23,7 +26,7 @@ namespace rtk {
         TextureManager(const TextureManager&) = delete;
         TextureManager& operator=(const TextureManager&) = delete;
 
-        uint32_t loadTexture(const std::string& filepath);
+        rtk::Texture loadTexture(const std::string& filepath);
         const TextureData& getTexture(uint32_t id) const;
 
         VkDescriptorSetLayout getDescriptorSetLayout() const { return _descriptorSetLayout; }

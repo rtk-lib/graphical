@@ -45,8 +45,8 @@ namespace rtk
         delegate.isOpen = &_isOpen;
         [window setDelegate:delegate];
         
-        _display = (__bridge_retained void*)delegate;
-        _windowHandle = (uint64_t)(__bridge void*)window;
+        _display = (__bridge_retained void *)delegate;
+        _windowHandle = (uint64_t)(__bridge void *)window;
         _surface = 0;
         _vkInstance = nullptr;
 
@@ -56,7 +56,7 @@ namespace rtk
     Window::~Window()
     {
         if (_windowHandle) {
-            NSWindow* window = (__bridge NSWindow*)(void*)_windowHandle;
+            NSWindow* window = (__bridge NSWindow*)(void *)_windowHandle;
             [window close];
             RtkWindowDelegate* delegate = (__bridge_transfer RtkWindowDelegate*)_display;
             delegate = nil;
@@ -79,11 +79,11 @@ namespace rtk
         return { VK_KHR_SURFACE_EXTENSION_NAME, VK_EXT_METAL_SURFACE_EXTENSION_NAME };
     }
 
-    void Window::createSurface(void* vkInstance)
+    void Window::createSurface(void *vkInstance)
     {
         _vkInstance = vkInstance;
 
-        NSWindow* window = (__bridge NSWindow*)(void*)_windowHandle;
+        NSWindow* window = (__bridge NSWindow*)(void *)_windowHandle;
         CAMetalLayer* layer = (CAMetalLayer*)[[window contentView] layer];
 
         VkMetalSurfaceCreateInfoEXT createInfo{};

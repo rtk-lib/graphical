@@ -40,9 +40,9 @@ namespace rtk {
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         samplerInfo.magFilter = VK_FILTER_NEAREST;
         samplerInfo.minFilter = VK_FILTER_NEAREST;
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         samplerInfo.anisotropyEnable = VK_FALSE;
         samplerInfo.maxAnisotropy = 1.0f;
         samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
@@ -108,10 +108,10 @@ namespace rtk {
             throw std::runtime_error("Failed to allocate bindless descriptor set!");
     }
 
-    uint32_t TextureManager::loadTexture(const std::string& filepath)
+    rtk::Texture TextureManager::loadTexture(const std::string& filepath)
     {
         if (_textureCache.find(filepath) != _textureCache.end())
-            return _textureCache[filepath];
+            return Texture(_textureCache[filepath]);
 
         uint32_t index = static_cast<uint32_t>(_textures.size());
         if (index >= MAX_BINDLESS_TEXTURES)
@@ -123,7 +123,7 @@ namespace rtk {
 
         updateDescriptorSet(index, texData.view);
 
-        return index;
+        return Texture(index);
     }
 
     const TextureData& TextureManager::getTexture(uint32_t id) const
@@ -167,7 +167,7 @@ namespace rtk {
 
         vkBindBufferMemory(device, stagingBuffer, stagingBufferMemory, 0);
 
-        void* data;
+        void *data;
         vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
         memcpy(data, pixels, static_cast<size_t>(imageSize));
         vkUnmapMemory(device, stagingBufferMemory);

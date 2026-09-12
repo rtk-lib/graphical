@@ -2,24 +2,33 @@
 
 #include "../fwd.hpp"
 
+#include <cstddef>
+#include <cstdint>
+
+#define RTK_KEYS_TAB_SIZE 256
+
+
+#if defined(_WIN32)
+    #include "keyWindow.hpp"
+
+#elif defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+
+    #if TARGET_OS_OSX
+        #include "keyMac.hpp"
+    #endif
+
+#elif defined(__linux__)
+    #include "keyX11.hpp"
+
+#else
+    #error "RTK: Can be load only on linux:X11, Apple, and Window"
+#endif
+
 namespace rtk {
 
-    class Event
-    {
-        private:
-            bool keyPressed[256];
-            bool keyReleased[256];
-        public:
-            /**
-             *  @brief make Window a friend of Event
-             *  to let him fill the key
-             */
-            friend class Window;
-    };
-
-    /**
+     /**
      * @brief Enumeration of all supported keyboard keys.
-     * Abstracted cross-platform key codes used by the ECS and Event system.
      */
     enum class Key : uint16_t
     {
@@ -49,5 +58,43 @@ namespace rtk {
         Numpad5, Numpad6, Numpad7, Numpad8, Numpad9,
 
         F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15,
+    };
+
+    class Event {
+    private:
+        bool _keyPressed[RTK_KEYS_TAB_SIZE]{};
+        bool _keyReleased[RTK_KEYS_TAB_SIZE]{};
+
+        static constexpr std::size_t keyToIndex(Key key)
+        {
+            return static_cast<std::size_t>(key);
+        }
+
+        bool translateKey(rtk::Key key) const;
+
+    public:
+        friend class Window;
+
+        [[nodiscard]]
+        bool isKeyPressed(rtk::Key key) const
+        {
+            const std::size_t index = keyToIndex(key);
+
+            if (key == Key::Unknown || index >= RTK_KEYS_TAB_SIZE)
+                return false;
+
+            return translateKey(key);
+        }
+
+        [[nodiscard]]
+        bool isKeyReleased(Key key) const
+        {
+            const std::size_t index = keyToIndex(key);
+
+            if (key == Key::Unknown || index >= RTK_KEYS_TAB_SIZE)
+                return false;
+
+            return _keyReleased[index];
+        }
     };
 }
