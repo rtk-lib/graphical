@@ -22,10 +22,7 @@ namespace rtk
         if (_commandPool)
             vkDestroyCommandPool(_device, _commandPool, nullptr);
 
-        for (auto imageView : _swapChainImageViews)
-            vkDestroyImageView(_device, imageView, nullptr);
-        if (_swapChain)
-            vkDestroySwapchainKHR(_device, _swapChain, nullptr);
+        cleanupSwapChain();
         
         if (_device)
             vkDestroyDevice(_device, nullptr);
@@ -394,5 +391,21 @@ namespace rtk
             actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
             return actualExtent;
         }
+    }
+
+    void VulkanContext::cleanupSwapChain()
+    {
+        for (auto imageView : _swapChainImageViews)
+            vkDestroyImageView(_device, imageView, nullptr);
+        if (_swapChain)
+            vkDestroySwapchainKHR(_device, _swapChain, nullptr);
+    }
+
+    void VulkanContext::recreateSwapChain()
+    {
+        vkDeviceWaitIdle(_device);
+        cleanupSwapChain();
+        createSwapChain();    
+        createImageViews();
     }
 }

@@ -79,7 +79,7 @@ namespace rtk {
          * @param context The VulkanContext reference.
          * @param textureManager The TextureManager reference.
          */
-        SpriteRenderer(const VulkanContext& context, const TextureManager& textureManager);
+        SpriteRenderer(VulkanContext& context, const TextureManager& textureManager);
 
         /**
          * @brief Destroys the SpriteRenderer and releases Vulkan resources.
@@ -110,7 +110,7 @@ namespace rtk {
         void endFrame();
 
     private:
-        const VulkanContext& _context;
+        VulkanContext& _context;
         const TextureManager& _textureManager;
 
         VkRenderPass _renderPass = VK_NULL_HANDLE;
@@ -154,5 +154,8 @@ namespace rtk {
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
         VkShaderModule createShaderModule(const std::vector<char>& code);
         std::vector<char> readFile(const std::string& filename);
+
+        void recreateSwapChain();
+
     };
 }

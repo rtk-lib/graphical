@@ -49,7 +49,11 @@ namespace rtk
         VkCommandBuffer beginSingleTimeCommands() const;
         void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
+        void recreateSwapChain();
+
     private:
+        void cleanupSwapChain();
+
         void createInstance();
         void createSurface();
         void pickPhysicalDevice();
