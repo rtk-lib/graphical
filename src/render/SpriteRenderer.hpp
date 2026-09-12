@@ -102,7 +102,7 @@ namespace rtk {
          * @param rotation The rotation of the sprite in degrees.
          * @param textureId The ID of the texture from the bindless array.
          */
-        void drawSprite(const glm::vec2& position, const glm::vec2& size, float rotation, const rtk::Texture &textureId);
+        void drawSprite(const glm::vec2& position, const glm::vec2& size, float rotation, const uint32_t textureId);
 
         /**
          * @brief Ends the current frame, flushing all batched sprites to the GPU and presenting.

@@ -327,9 +327,8 @@ namespace rtk {
         _isFrameStarted = true;
     }
 
-    void SpriteRenderer::drawSprite(const glm::vec2& position, const glm::vec2& size, float rotation, const rtk::Texture &texture)
+    void SpriteRenderer::drawSprite(const glm::vec2& position, const glm::vec2& size, float rotation, const uint32_t textureId)
     {
-        const uint32_t textureId = texture._handle;
         if (!_isFrameStarted || _quadCount >= MAX_SPRITES)
             return;
 

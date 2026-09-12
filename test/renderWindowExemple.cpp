@@ -19,10 +19,11 @@ int main()
     rtk::RenderWindow rWindow({1920, 1080}, "Vulkan");
 
     rtk::Texture testTexId = rWindow.loadTexture("texture.png");
-
     rtk::Sprite sprite(testTexId);
 
-    sprite.setPosition({1000.0f, 0.0f});
+    sprite.setPosition({1920.0f / 2 - (1920 / 4), 0.0f / 2});
+    sprite.setSize({1000.0f, 1000.0f});
+    sprite.setRotation(0.0f);
 
     rtk::Event rtkEvent;
 
@@ -30,7 +31,8 @@ int main()
 
     while (rWindow.pollEvents(rtkEvent)) {
         rWindow.beginFrame(clearColor);
-        rWindow.drawSpriteFromRaw({1920.0f / 2 - (1920 / 4), 0.0f / 2}, {1000.0f, 1000.0f}, 0.0f, testTexId);
+        sprite.setRotation(0.0f);
+        rWindow.drawSprite(sprite);
         rWindow.endFrame();
     }
 

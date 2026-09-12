@@ -1,4 +1,7 @@
 #include "../render/SpriteRenderer.hpp"
+
+#include "../sprite/sprite.hpp"
+
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace rtk {
@@ -74,13 +77,13 @@ namespace rtk {
 
             void drawSpriteFromRaw(const glm::vec2& position, const glm::vec2& size, float rotation, const rtk::Texture &texture)
             {
-                _renderer.drawSprite(position, size, rotation, texture);
+                _renderer.drawSprite(position, size, rotation, texture._handle);
             }
 
-            //void drawSpriteFromRaw(const rtk::Sprite &sprite);
-            //{
-            //    _renderer.drawSprite(sprite);
-            //}
+            void drawSprite(const rtk::Sprite &sprite)
+            {
+                _renderer.drawSprite(sprite.getPosition(), sprite.getSize(), sprite.getRotation(), sprite.getTextureId());
+            }
 
             void endFrame()
             {

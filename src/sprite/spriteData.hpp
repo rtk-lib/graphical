@@ -22,8 +22,8 @@ namespace rtk
      * 32 byte struct btw
     */
     struct SpriteData {
-        math::vec2 position;
-        math::vec2 scale;
+        glm::vec2 position;
+        glm::vec2 scale;
         float rotation;
 
         uint32_t textureId;

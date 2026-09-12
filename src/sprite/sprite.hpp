@@ -16,12 +16,12 @@ namespace rtk {
                 _data.flags = 0;
             }
 
-            void setPosition(math::vec2 position) noexcept
+            void setPosition(glm::vec2 position) noexcept
             {
                 _data.position = position;
             }
 
-            void setSize(math::vec2 size) noexcept
+            void setSize(glm::vec2 size) noexcept
             {
                 _data.scale = size;
             }
@@ -47,13 +47,13 @@ namespace rtk {
             }
 
             [[nodiscard]]
-            math::vec2 getPosition() const noexcept
+            glm::vec2 getPosition() const noexcept
             {
                 return _data.position;
             }
 
             [[nodiscard]]
-            math::vec2 getSize() const noexcept
+            glm::vec2 getSize() const noexcept
             {
                 return _data.scale;
             }
@@ -71,6 +71,14 @@ namespace rtk {
             }
 
         private:
+            [[nodiscard]]
+            float getTextureId() const noexcept
+            {
+                return _data.textureId;
+            }
+
+            friend class RenderWindow;
+
             SpriteData _data {};    
     };
 }
