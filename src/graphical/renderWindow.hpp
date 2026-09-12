@@ -58,7 +58,7 @@ namespace rtk {
             * @return returns the ID of a texture
             */
             [[nodiscard]]
-            uint32_t loadTexture(const char *textureFile)
+            rtk::Texture loadTexture(const char *textureFile)
             {
                 return _textures.loadTexture(textureFile);
             }
@@ -72,9 +72,9 @@ namespace rtk {
                 _renderer.beginFrame(color);
             }
 
-            void drawSpriteFromRaw(const glm::vec2& position, const glm::vec2& size, float rotation, uint32_t textureId)
+            void drawSpriteFromRaw(const glm::vec2& position, const glm::vec2& size, float rotation, const rtk::Texture &texture)
             {
-                _renderer.drawSprite(position, size, rotation, textureId);
+                _renderer.drawSprite(position, size, rotation, texture);
             }
 
             //void drawSpriteFromRaw(const rtk::Sprite &sprite);

@@ -18,7 +18,7 @@ int main()
 {
     rtk::RenderWindow rWindow({1920, 1080}, "Vulkan");
 
-    uint32_t testTexId = rWindow.loadTexture("texture.png");
+    rtk::Texture testTexId = rWindow.loadTexture("texture.png");
 
     rtk::SpriteData sprite;
 

@@ -108,10 +108,10 @@ namespace rtk {
             throw std::runtime_error("Failed to allocate bindless descriptor set!");
     }
 
-    uint32_t TextureManager::loadTexture(const std::string& filepath)
+    rtk::Texture TextureManager::loadTexture(const std::string& filepath)
     {
         if (_textureCache.find(filepath) != _textureCache.end())
-            return _textureCache[filepath];
+            return Texture(_textureCache[filepath]);
 
         uint32_t index = static_cast<uint32_t>(_textures.size());
         if (index >= MAX_BINDLESS_TEXTURES)
@@ -123,7 +123,7 @@ namespace rtk {
 
         updateDescriptorSet(index, texData.view);
 
-        return index;
+        return Texture(index);
     }
 
     const TextureData& TextureManager::getTexture(uint32_t id) const
