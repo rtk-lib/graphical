@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include "spriteData.hpp"
 
 namespace rtk {
@@ -16,12 +17,12 @@ namespace rtk {
                 _data.flags = 0;
             }
 
-            void setPosition(glm::vec2 position) noexcept
+            void setPosition(rtk::vec2 position) noexcept
             {
                 _data.position = position;
             }
 
-            void setSize(glm::vec2 size) noexcept
+            void setSize(rtk::vec2 size) noexcept
             {
                 _data.scale = size;
             }
@@ -47,13 +48,13 @@ namespace rtk {
             }
 
             [[nodiscard]]
-            glm::vec2 getPosition() const noexcept
+            rtk::vec2 getPosition() const noexcept
             {
                 return _data.position;
             }
 
             [[nodiscard]]
-            glm::vec2 getSize() const noexcept
+            rtk::vec2 getSize() const noexcept
             {
                 return _data.scale;
             }

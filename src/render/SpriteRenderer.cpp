@@ -7,6 +7,9 @@
 
 namespace rtk {
 
+    const std::vector<rtk::vec2> QUAD_VERTICES = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
+    const std::vector<uint16_t> QUAD_INDICES = {0, 1, 2, 2, 3, 0};
+
     SpriteRenderer::SpriteRenderer(VulkanContext& context, const TextureManager& textureManager)
         : _context(context), _textureManager(textureManager)
     {
@@ -30,13 +33,17 @@ namespace rtk {
             vkDestroyFence(device, _inFlightFences[i], nullptr);
         }
 
-        vkUnmapMemory(device, _indexBufferMemory);
-        vkDestroyBuffer(device, _indexBuffer, nullptr);
-        vkFreeMemory(device, _indexBufferMemory, nullptr);
+        vkDestroyBuffer(device, _quadIndexBuffer, nullptr);
+        vkFreeMemory(device, _quadIndexBufferMemory, nullptr);
 
-        vkUnmapMemory(device, _vertexBufferMemory);
-        vkDestroyBuffer(device, _vertexBuffer, nullptr);
-        vkFreeMemory(device, _vertexBufferMemory, nullptr);
+        vkDestroyBuffer(device, _quadVertexBuffer, nullptr);
+        vkFreeMemory(device, _quadVertexBufferMemory, nullptr);
+
+        if (_instanceBuffer != VK_NULL_HANDLE) {
+            vkUnmapMemory(device, _instanceBufferMemory);
+            vkDestroyBuffer(device, _instanceBuffer, nullptr);
+            vkFreeMemory(device, _instanceBufferMemory, nullptr);
+        }
 
         for (auto framebuffer : _swapChainFramebuffers)
             vkDestroyFramebuffer(device, framebuffer, nullptr);
@@ -112,15 +119,23 @@ namespace rtk {
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-        auto bindingDescription = SpriteVertex::getBindingDescription();
-        auto attributeDescriptions = SpriteVertex::getAttributeDescriptions();
+        auto vertexBinding = SpriteVertex::getBindingDescription();
+        auto instanceBinding = getSpriteBindingDescription();
+        std::vector<VkVertexInputBindingDescription> bindings = {vertexBinding, instanceBinding};
+
+        auto vertexAttributes = SpriteVertex::getAttributeDescriptions();
+        auto instanceAttributes = getSpriteAttributeDescriptions();
+
+        std::vector<VkVertexInputAttributeDescription> attributes;
+        attributes.insert(attributes.end(), vertexAttributes.begin(), vertexAttributes.end());
+        attributes.insert(attributes.end(), instanceAttributes.begin(), instanceAttributes.end());
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 1;
-        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+        vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindings.size());
+        vertexInputInfo.pVertexBindingDescriptions = bindings.data();
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size());
+        vertexInputInfo.pVertexAttributeDescriptions = attributes.data();
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -236,14 +251,33 @@ namespace rtk {
 
     void SpriteRenderer::createBuffers()
     {
-        VkDeviceSize vertexBufferSize = sizeof(SpriteVertex) * MAX_VERTICES;
-        VkDeviceSize indexBufferSize = sizeof(uint32_t) * MAX_INDICES;
+        VkDeviceSize vertexBufferSize = sizeof(rtk::vec2) * QUAD_VERTICES.size();
+        createBuffer(vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     _quadVertexBuffer, _quadVertexBufferMemory);
 
-        createBuffer(vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, _vertexBuffer, _vertexBufferMemory);
-        vkMapMemory(_context.getDevice(), _vertexBufferMemory, 0, vertexBufferSize, 0, &_mappedVertices);
+        void* vertexData;
+        vkMapMemory(_context.getDevice(), _quadVertexBufferMemory, 0, vertexBufferSize, 0, &vertexData);
+        memcpy(vertexData, QUAD_VERTICES.data(), vertexBufferSize);
+        vkUnmapMemory(_context.getDevice(), _quadVertexBufferMemory);
 
-        createBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, _indexBuffer, _indexBufferMemory);
-        vkMapMemory(_context.getDevice(), _indexBufferMemory, 0, indexBufferSize, 0, &_mappedIndices);
+        VkDeviceSize indexBufferSize = sizeof(uint16_t) * QUAD_INDICES.size();
+        createBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     _quadIndexBuffer, _quadIndexBufferMemory);
+
+        void* indexData;
+        vkMapMemory(_context.getDevice(), _quadIndexBufferMemory, 0, indexBufferSize, 0, &indexData);
+        memcpy(indexData, QUAD_INDICES.data(), indexBufferSize);
+        vkUnmapMemory(_context.getDevice(), _quadIndexBufferMemory);
+
+
+        VkDeviceSize instanceBufferSize = sizeof(rtk::SpriteData) * MAX_SPRITES;
+        createBuffer(instanceBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     _instanceBuffer, _instanceBufferMemory);
+
+        vkMapMemory(_context.getDevice(), _instanceBufferMemory, 0, instanceBufferSize, 0, &_mappedInstanceData);
     }
 
     void SpriteRenderer::createCommandBuffers()
@@ -321,57 +355,34 @@ namespace rtk {
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        _cpuVertices.clear();
-        _cpuIndices.clear();
         _quadCount = 0;
         _isFrameStarted = true;
     }
 
-    void SpriteRenderer::drawSprite(const glm::vec2& position, const glm::vec2& size, float rotation, const uint32_t textureId)
+    void SpriteRenderer::drawSprite(const rtk::vec2& position, const rtk::vec2& size, float rotation, const uint32_t textureId)
     {
         if (!_isFrameStarted || _quadCount >= MAX_SPRITES)
             return;
 
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(position, 0.0f));
-        model = glm::translate(model, glm::vec3(0.5f * size.x, 0.5f * size.y, 0.0f));
-        model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
-        model = glm::translate(model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
-        model = glm::scale(model, glm::vec3(size, 1.0f));
-
-        glm::vec2 p0 = glm::vec2(model * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-        glm::vec2 p1 = glm::vec2(model * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-        glm::vec2 p2 = glm::vec2(model * glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-        glm::vec2 p3 = glm::vec2(model * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-
-        uint32_t vertexOffset = static_cast<uint32_t>(_cpuVertices.size());
-
-        _cpuVertices.reserve(QUAD_MEMORY_SIZE);
-
-        _cpuVertices.push_back({p0, {0.0f, 0.0f}, textureId});
-        _cpuVertices.push_back({p1, {1.0f, 0.0f}, textureId});
-        _cpuVertices.push_back({p2, {1.0f, 1.0f}, textureId});
-        _cpuVertices.push_back({p3, {0.0f, 1.0f}, textureId});
-
-        _cpuIndices.reserve(INDICE_MEMORY_SIZE);
-
-        _cpuIndices.push_back(vertexOffset + 0);
-        _cpuIndices.push_back(vertexOffset + 1);
-        _cpuIndices.push_back(vertexOffset + 2);
-        _cpuIndices.push_back(vertexOffset + 2);
-        _cpuIndices.push_back(vertexOffset + 3);
-        _cpuIndices.push_back(vertexOffset + 0);
+        _instances.push_back({
+            position,
+            size,
+            rotation,
+            textureId,
+            0xFFFFFFFF,
+            0
+        });
 
         _quadCount++;
     }
 
-    void SpriteRenderer::flush()
+void SpriteRenderer::flush()
     {
-        if (_cpuIndices.empty())
+        if (_instances.empty())
             return;
 
-        memcpy(_mappedVertices, _cpuVertices.data(), _cpuVertices.size() * sizeof(SpriteVertex));
-        memcpy(_mappedIndices, _cpuIndices.data(), _cpuIndices.size() * sizeof(uint32_t));
+        size_t dataSize = _instances.size() * sizeof(rtk::SpriteData);
+        memcpy(_mappedInstanceData, _instances.data(), dataSize);
 
         VkCommandBuffer commandBuffer = _commandBuffers[_currentFrame];
 
@@ -398,18 +409,18 @@ namespace rtk {
         push.projectionView = projView;
         vkCmdPushConstants(commandBuffer, _pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(SpritePushConstants), &push);
 
-        VkBuffer vertexBuffers[] = {_vertexBuffer};
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, _indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        VkBuffer vertexBuffers[] = { _quadVertexBuffer, _instanceBuffer };
+        VkDeviceSize offsets[] = { 0, 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
+        
+        vkCmdBindIndexBuffer(commandBuffer, _quadIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
         VkDescriptorSet descriptorSet = _textureManager.getDescriptorSet();
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(_cpuIndices.size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, 6, static_cast<uint32_t>(_instances.size()), 0, 0, 0);
 
-        _cpuVertices.clear();
-        _cpuIndices.clear();
+        _instances.clear();
         _quadCount = 0;
     }
 

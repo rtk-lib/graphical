@@ -4,6 +4,8 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "../utils/vec2.hpp"
+
 namespace rtk {
     class RenderWindow
     {
@@ -26,7 +28,7 @@ namespace rtk {
             /**
              * @brief init window, context, the textureManager and the renderer
             */
-            RenderWindow(glm::vec2 windowSize, const char *windowName) :
+            RenderWindow(rtk::vec2 windowSize, const char *windowName) :
                 _window(windowSize.x, windowSize.y, windowName), 
                 _context(_window),
                 _textures(_context),
@@ -75,7 +77,7 @@ namespace rtk {
                 _renderer.beginFrame(color);
             }
 
-            void drawSpriteFromRaw(const glm::vec2& position, const glm::vec2& size, float rotation, const rtk::Texture &texture)
+            void drawSpriteFromRaw(const rtk::vec2& position, const rtk::vec2& size, float rotation, const rtk::Texture &texture)
             {
                 _renderer.drawSprite(position, size, rotation, texture._handle);
             }
