@@ -1,4 +1,4 @@
-#include "../render/SpriteRender.hpp
+#include "../render/SpriteRenderer.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace rtk {
@@ -27,8 +27,13 @@ namespace rtk {
                 _window(windowSize.x, windowSize.y, windowName), 
                 _context(_window),
                 _textures(_context),
-                _renderer(_context, _texture)
+                _renderer(_context, _textures)
             {}
+
+            
+            /********\
+            * Window *
+            \********/
 
             /** 
              * @brief get some event on the computer
@@ -40,6 +45,46 @@ namespace rtk {
             inline bool pollEvents(rtk::Event &event)
             {
                 return _window.pollEvents(event);
+            }
+
+            /*****************\
+            * Texture Manager *
+            \*****************/
+
+            /**
+            * @brief load texture into the texture manager
+            * 
+            * @param textureFile path of the file.
+            * @return returns the ID of a texture
+            */
+            [[nodiscard]]
+            uint32_t loadTexture(const char *textureFile)
+            {
+                return _textures.loadTexture(textureFile);
+            }
+
+            /***************\
+            * Sprite Render *
+            \***************/
+
+            void beginFrame(const rtk::RGB &color)
+            {
+                _renderer.beginFrame(color);
+            }
+
+            void drawSpriteFromRaw(const glm::vec2& position, const glm::vec2& size, float rotation, uint32_t textureId)
+            {
+                _renderer.drawSprite(position, size, rotation, textureId);
+            }
+
+            //void drawSpriteFromRaw(const rtk::Sprite &sprite);
+            //{
+            //    _renderer.drawSprite(sprite);
+            //}
+
+            void endFrame()
+            {
+                _renderer.endFrame();
             }
 
         };

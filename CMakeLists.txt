@@ -9,7 +9,9 @@ if(NOT EXISTS "${STB_IMAGE_HEADER}")
 endif()
 
 file(GLOB_RECURSE SRC_FILES "src/*.cpp" "src/*.mm")
-file(GLOB_RECURSE TEST_FILES "test/*.cpp")
+
+#depend on what test you need
+file(GLOB_RECURSE TEST_FILES "test/renderWindowExemple.cpp")
 
 list(REMOVE_ITEM SRC_FILES 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowLinux.cpp"
