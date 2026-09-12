@@ -379,9 +379,9 @@ namespace rtk {
 
         VkViewport viewport{};
         viewport.x = 0.0f;
-        viewport.y = 0.0f;
+        viewport.y = (float)_context.getSwapChainExtent().height;
         viewport.width = (float)_context.getSwapChainExtent().width;
-        viewport.height = (float)_context.getSwapChainExtent().height;
+        viewport.height = -(float)_context.getSwapChainExtent().height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
