@@ -20,9 +20,9 @@ int main()
 
     rtk::Texture testTexId = rWindow.loadTexture("texture.png");
 
-    rtk::SpriteData sprite;
+    rtk::Sprite sprite(testTexId);
 
-    sprite.position = {1000.0f, 0.0f};
+    sprite.setPosition({1000.0f, 0.0f});
 
     rtk::Event rtkEvent;
 

@@ -10,8 +10,18 @@ namespace rtk
     /**
      * @brief Simple struct representing an RGB color.
      */
-    struct RGB {
-        uint8_t r, g, b;
+    class RGB {
+        public:
+            uint8_t r, g, b;
+
+            [[nodiscard]]
+            constexpr uint32_t toRGBA(uint8_t alpha = 255) const noexcept
+            {
+                return static_cast<uint32_t>(r)
+                    | (static_cast<uint32_t>(g) << 8)
+                    | (static_cast<uint32_t>(b) << 16)
+                    | (static_cast<uint32_t>(alpha) << 24);
+            }
     };
 
     /*
