@@ -1,5 +1,10 @@
-cmake_minimum_required(VERSION 3.10)
-project(graphical_test)
+cmake_minimum_required(VERSION 3.16)
+
+project(graphical_test LANGUAGES CXX)
+
+if(APPLE)
+    enable_language(OBJCXX)
+endif()
 
 set(STB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/stb")
 set(STB_IMAGE_HEADER "${STB_DIR}/stb_image.h")
@@ -11,7 +16,7 @@ endif()
 file(GLOB_RECURSE SRC_FILES "src/*.cpp" "src/*.mm")
 
 #depend on what test you need
-file(GLOB_RECURSE TEST_FILES "test/renderWindowExemple.cpp")
+file(GLOB_RECURSE TEST_FILES "test/manyTexture.cpp")
 
 list(REMOVE_ITEM SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowLinux.cpp"
@@ -20,6 +25,7 @@ list(REMOVE_ITEM SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/window/window.cpp"
 )
 add_executable(graphical_test ${TEST_FILES})
+
 
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -33,6 +39,9 @@ target_include_directories(graphical_test PRIVATE include src src/stb)
 find_package(Vulkan REQUIRED)
 target_link_libraries(graphical_test PRIVATE Vulkan::Vulkan)
 
+find_package(glm CONFIG REQUIRED)
+target_link_libraries(graphical_test PRIVATE glm::glm)
+
 target_compile_features(graphical_test PRIVATE cxx_std_20)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -41,11 +50,36 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     target_link_libraries(graphical_test PRIVATE X11::X11)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
     list(APPEND SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowWindows.cpp")
-elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    list(APPEND SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowMac.mm")
+elseif(APPLE)
+    list(APPEND SRC_FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowMac.mm"
+    )
+
     find_library(COCOA_LIBRARY Cocoa)
     find_library(QUARTZCORE_LIBRARY QuartzCore)
-    target_link_libraries(graphical_test PRIVATE ${COCOA_LIBRARY} ${QUARTZCORE_LIBRARY})
+    find_library(COREGRAPHICS_LIBRARY CoreGraphics)
+    find_library(METAL_LIBRARY Metal)
+
+    target_link_libraries(graphical_test PRIVATE
+        ${COCOA_LIBRARY}
+        ${QUARTZCORE_LIBRARY}
+        ${COREGRAPHICS_LIBRARY}
+        ${METAL_LIBRARY}
+    )
+
+    set_source_files_properties(
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowMac.mm"
+        PROPERTIES LANGUAGE OBJCXX
+    )
+
+    set_target_properties(graphical_test PROPERTIES
+        OBJCXX_STANDARD 20
+        OBJCXX_STANDARD_REQUIRED YES
+    )
+
+    target_compile_definitions(graphical_test PRIVATE
+        VK_USE_PLATFORM_METAL_EXT
+    )
 endif()
 
 target_sources(graphical_test PRIVATE ${SRC_FILES})
