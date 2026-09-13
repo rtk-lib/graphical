@@ -87,6 +87,11 @@ namespace rtk {
                 _renderer.drawSprite(sprite.getPosition(), sprite.getSize(), sprite.getRotation(), sprite.getTextureId());
             }
 
+            void draw(std::span<const SpriteData> sprites)
+            {
+                _renderer.submit(sprites);
+            }
+
             void endFrame()
             {
                 _renderer.endFrame();
