@@ -23,7 +23,7 @@ namespace rtk
             vkDestroyCommandPool(_device, _commandPool, nullptr);
 
         cleanupSwapChain();
-        
+
         if (_device)
             vkDestroyDevice(_device, nullptr);
 
@@ -91,13 +91,14 @@ namespace rtk
     {
         /*Get the number of physical device on the computer*/
         uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(_instance, &deviceCount, nullptr);
+
+        checkVkR(vkEnumeratePhysicalDevices(_instance, &deviceCount, nullptr));
         if (deviceCount == 0)
             throw std::runtime_error("Failed to find GPUs with Vulkan support!");
 
         /*Get every physical device on the computer*/
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(_instance, &deviceCount, devices.data());
+        checkVkR(vkEnumeratePhysicalDevices(_instance, &deviceCount, devices.data()));
 
         /* Select the first device that meets all application requirements (queue support, swapchain, features) */
         for (const auto& device : devices)
@@ -272,27 +273,27 @@ namespace rtk
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBuffer;
-        vkAllocateCommandBuffers(_device, &allocInfo, &commandBuffer);
+        checkVkR(vkAllocateCommandBuffers(_device, &allocInfo, &commandBuffer));
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+        checkVkR(vkBeginCommandBuffer(commandBuffer, &beginInfo));
         return commandBuffer;
     }
 
     void VulkanContext::endSingleTimeCommands(VkCommandBuffer commandBuffer) const
     {
-        vkEndCommandBuffer(commandBuffer);
+        checkVkR(vkEndCommandBuffer(commandBuffer));
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
 
-        vkQueueSubmit(_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(_graphicsQueue);
+        checkVkR(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
+        checkVkR(vkQueueWaitIdle(_graphicsQueue));
         vkFreeCommandBuffers(_device, _commandPool, 1, &commandBuffer);
     }
 
@@ -363,20 +364,20 @@ namespace rtk
 
     SwapChainSupportDetails VulkanContext::querySwapChainSupport(VkPhysicalDevice device) const {
         SwapChainSupportDetails details;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, _surface, &details.capabilities);
+        checkVkR(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, _surface, &details.capabilities));
 
         uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, _surface, &formatCount, nullptr);
+        checkVkR(vkGetPhysicalDeviceSurfaceFormatsKHR(device, _surface, &formatCount, nullptr));
         if (formatCount != 0) {
             details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, _surface, &formatCount, details.formats.data());
+            checkVkR(vkGetPhysicalDeviceSurfaceFormatsKHR(device, _surface, &formatCount, details.formats.data()));
         }
 
         uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, _surface, &presentModeCount, nullptr);
+        checkVkR(vkGetPhysicalDeviceSurfacePresentModesKHR(device, _surface, &presentModeCount, nullptr));
         if (presentModeCount != 0) {
             details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, _surface, &presentModeCount, details.presentModes.data());
+            checkVkR(vkGetPhysicalDeviceSurfacePresentModesKHR(device, _surface, &presentModeCount, details.presentModes.data()));
         }
         return details;
     }

@@ -165,10 +165,10 @@ namespace rtk {
         if (vkAllocateMemory(device, &allocInfo, nullptr, &stagingBufferMemory) != VK_SUCCESS)
             throw std::runtime_error("Failed to allocate staging buffer memory!");
 
-        vkBindBufferMemory(device, stagingBuffer, stagingBufferMemory, 0);
+        checkVkR(vkBindBufferMemory(device, stagingBuffer, stagingBufferMemory, 0));
 
         void *data;
-        vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+        checkVkR(vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data));
         memcpy(data, pixels, static_cast<size_t>(imageSize));
         vkUnmapMemory(device, stagingBufferMemory);
 
@@ -202,10 +202,10 @@ namespace rtk {
         if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
             throw std::runtime_error("Failed to allocate image memory!");
 
-        vkBindImageMemory(device, image, imageMemory, 0);
+        checkVkR(vkBindImageMemory(device, image, imageMemory, 0));
 
         VkCommandBuffer commandBuffer = _context.beginSingleTimeCommands();
-        
+
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;

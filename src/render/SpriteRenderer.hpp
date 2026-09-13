@@ -27,8 +27,6 @@
 #define MAX_INDICES 6
 
 namespace rtk {
-
-
     struct FrameResources {
        VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 

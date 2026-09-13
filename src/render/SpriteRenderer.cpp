@@ -7,6 +7,8 @@
 
 namespace rtk {
 
+
+
     const std::vector<rtk::vec2> QUAD_VERTICES = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
     const std::vector<uint16_t> QUAD_INDICES = {0, 1, 2, 2, 3, 0};
 
@@ -265,7 +267,7 @@ namespace rtk {
                      _quadVertexBuffer, _quadVertexBufferMemory);
 
         void* vertexData;
-        vkMapMemory(_context.getDevice(), _quadVertexBufferMemory, 0, vertexBufferSize, 0, &vertexData);
+        checkVkR(vkMapMemory(_context.getDevice(), _quadVertexBufferMemory, 0, vertexBufferSize, 0, &vertexData));
         memcpy(vertexData, QUAD_VERTICES.data(), vertexBufferSize);
         vkUnmapMemory(_context.getDevice(), _quadVertexBufferMemory);
 
@@ -275,7 +277,7 @@ namespace rtk {
                      _quadIndexBuffer, _quadIndexBufferMemory);
 
         void* indexData;
-        vkMapMemory(_context.getDevice(), _quadIndexBufferMemory, 0, indexBufferSize, 0, &indexData);
+        checkVkR(vkMapMemory(_context.getDevice(), _quadIndexBufferMemory, 0, indexBufferSize, 0, &indexData));
         memcpy(indexData, QUAD_INDICES.data(), indexBufferSize);
         vkUnmapMemory(_context.getDevice(), _quadIndexBufferMemory);
 
@@ -588,8 +590,7 @@ namespace rtk {
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
-        if (vkAllocateCommandBuffers(_context.getDevice(), &allocInfo, commandBuffers.data()) != VK_SUCCESS)
-            throw std::runtime_error("Failed to allocate command buffers");
+        checkVkR(vkAllocateCommandBuffers(_context.getDevice(), &allocInfo, commandBuffers.data()));
 
         for (std::size_t i = 0; i < MaxFramesInFlight; i++)
             _frames[i].commandBuffer = commandBuffers[i];
