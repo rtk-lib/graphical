@@ -121,6 +121,13 @@ namespace rtk {
          */
         void drawSprite(const rtk::vec2& position, const rtk::vec2& size, float rotation, const uint32_t textureId);
 
+        /**
+         * @brief Adds a sprite to the current rendering batch from sprite info.
+         * @param sprite rtk::sprite to draw
+         */
+        void drawSprite(const Sprite& sprite);
+
+
 
         /**
          * @brief Adds a sprite to the current rendering batch from sprite data.

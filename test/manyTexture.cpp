@@ -9,7 +9,7 @@ int main()
 {
     rtk::RenderWindow rWindow({1920, 1080}, "Vulkan");
 
-    rtk::Texture sonicTex = rWindow.loadTexture("./test/sonica.png");
+    rtk::Texture sonicTex = rWindow.loadTexture("./test/sonic.png");
     rtk::Texture marioTex = rWindow.loadTexture("./test/mario.png");
 
     rtk::Sprite sonicSprite(sonicTex);
@@ -22,6 +22,8 @@ int main()
     marioSprite.setPosition({1100.0f, 400.0f});
     marioSprite.setSize({300.0f, 300.0f});
     marioSprite.setRotation(0.0f);
+
+    marioSprite.setFlipY(true);
 
     rtk::Event rtkEvent;
     rtk::RGB clearColor = {100, 100, 100};

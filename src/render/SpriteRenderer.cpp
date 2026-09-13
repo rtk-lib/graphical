@@ -363,9 +363,21 @@ namespace rtk {
 
     void SpriteRenderer::drawSprite(const rtk::vec2& position, const rtk::vec2& size, float rotation, uint32_t textureId)
     {
-        const SpriteData sprite{position, size, rotation, textureId, 0xFFFFFFFF, 0};
+        const SpriteData sprite{
+            .position = position,       .scale = {1.f, 1.f},
+            .size = size,               .origin = {0.f, 0.f},
+            .textureRect = {0, 0, 0, 0},.color = {255, 255, 255, 255},
+            .rotation = rotation,       .textureId = textureId,
+            .layer = 0,                 .flags = 0,
+            .reserved = 0
+        };
 
         submit(sprite);
+    }
+
+    void SpriteRenderer::drawSprite(const Sprite& sprite)
+    {
+        submit(sprite.data());
     }
 
     void SpriteRenderer::flush()
