@@ -83,14 +83,17 @@ namespace rtk
 
     void VulkanContext::pickPhysicalDevice()
     {
+        /*Get the number of physical device on the computer*/
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(_instance, &deviceCount, nullptr);
         if (deviceCount == 0)
             throw std::runtime_error("Failed to find GPUs with Vulkan support!");
 
+        /*Get every physical device on the computer*/
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(_instance, &deviceCount, devices.data());
 
+        /* Select the first device that meets all application requirements (queue support, swapchain, features) */
         for (const auto& device : devices)
             if (isDeviceSuitable(device)){
                 _physicalDevice = device;
@@ -307,13 +310,13 @@ namespace rtk
     bool VulkanContext::checkDeviceExtensionSupport(VkPhysicalDevice device) {
         uint32_t extensionCount;
 
-        /*Get the number of extension*/
+        /*Get the number of extension on this device*/
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        /*Get all the extension possible*/
+        /*Get all the extension possible for this device*/
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-        /*FIND VKR_SWAPCHAIN EXTENSION*/
+        /*Verify that every extension in _deviceExtensions is present by removing matches from the set*/
         std::set<std::string> requiredExtensions(_deviceExtensions.begin(), _deviceExtensions.end());
         for (const auto& extension : availableExtensions)
             requiredExtensions.erase(extension.extensionName);
@@ -337,6 +340,7 @@ namespace rtk
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, _surface, &presentSupport);
             if (presentSupport)
                 indices.presentFamily = i;
+            /*If we find all the Families ask we break out of the loop*/
             if (indices.isComplete())
                 break;
             i++;
