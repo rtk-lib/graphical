@@ -1,6 +1,6 @@
 build
 graphical_test
-shaders
+*.spv
 stb_*
 CMakeFiles
 Cmake_install.cmake

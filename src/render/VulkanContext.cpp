@@ -8,7 +8,7 @@ namespace rtk
 {
     VulkanContext::VulkanContext(Window& window) : _window(window), _width(window.getWindowSizeWidth()), _height(window.getWindowSizeHeight())
     {
-        createInstance();
+        createInstance();   
         createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
@@ -35,13 +35,17 @@ namespace rtk
 
     void VulkanContext::createInstance()
     {
+        /*Check Validation like VK_LAYER_KHRONOS_validation aka KHRONOS*/
         if (_enableValidationLayers && !checkValidationLayerSupport())
             throw std::runtime_error("Validation layers requested, but not available!");
 
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "RTK Vulkan Context";
+
+        /*Depracted*/
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+
         appInfo.pEngineName = "RTK Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_2;
@@ -50,6 +54,7 @@ namespace rtk
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
 
+        /*Get VKH SWAPCHAIN extension*/
         auto extensions = getRequiredExtensions();
         createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
@@ -66,7 +71,10 @@ namespace rtk
 
     void VulkanContext::createSurface()
     {
+        /*Create the surface into the window class*/
         _window.createSurface(_instance);
+
+        /*Get the surface from the window*/
         _surface = (VkSurfaceKHR)_window.getSurface();
 
         if (!_surface)
@@ -75,20 +83,30 @@ namespace rtk
 
     void VulkanContext::pickPhysicalDevice()
     {
+        /*Get the number of physical device on the computer*/
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(_instance, &deviceCount, nullptr);
         if (deviceCount == 0)
             throw std::runtime_error("Failed to find GPUs with Vulkan support!");
 
+        /*Get every physical device on the computer*/
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(_instance, &deviceCount, devices.data());
 
+        /* Select the first device that meets all application requirements (queue support, swapchain, features) */
         for (const auto& device : devices)
-            if (isDeviceSuitable(device)){
+            if (isDeviceSuitable(device, false)){
                 _physicalDevice = device;
                 break;
             }
 
+        if (_physicalDevice == VK_NULL_HANDLE){
+            for (const auto& device : devices)
+                if (isDeviceSuitable(device, true)){
+                    _physicalDevice = device;
+                    break;
+                }
+        }
         if (_physicalDevice == VK_NULL_HANDLE)
             throw std::runtime_error("Failed to find a suitable GPU!");
     }
@@ -298,10 +316,14 @@ namespace rtk
 
     bool VulkanContext::checkDeviceExtensionSupport(VkPhysicalDevice device) {
         uint32_t extensionCount;
+
+        /*Get the number of extension on this device*/
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        /*Get all the extension possible for this device*/
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
+        /*Verify that every extension in _deviceExtensions is present by removing matches from the set*/
         std::set<std::string> requiredExtensions(_deviceExtensions.begin(), _deviceExtensions.end());
         for (const auto& extension : availableExtensions)
             requiredExtensions.erase(extension.extensionName);
@@ -325,6 +347,7 @@ namespace rtk
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, _surface, &presentSupport);
             if (presentSupport)
                 indices.presentFamily = i;
+            /*If we find all the Families ask we break out of the loop*/
             if (indices.isComplete())
                 break;
             i++;
@@ -352,7 +375,18 @@ namespace rtk
         return details;
     }
 
-    bool VulkanContext::isDeviceSuitable(VkPhysicalDevice device) {
+    bool VulkanContext::isDeviceSuitable(VkPhysicalDevice device, bool useVirtualGpu) {
+
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+        bool isDiscrete = (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
+
+        if (isDiscrete == false && useVirtualGpu == false){
+            _virtualGpuPool.push_back(device);
+            return false;
+        }
+
         QueueFamilyIndices indices = findQueueFamilies(device);
         bool extensionsSupported = checkDeviceExtensionSupport(device);
         bool swapChainAdequate = false;
