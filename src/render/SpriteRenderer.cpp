@@ -27,29 +27,38 @@ namespace rtk {
 
         vkDeviceWaitIdle(device);
 
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            vkDestroySemaphore(device, _renderFinishedSemaphores[i], nullptr);
-            vkDestroySemaphore(device, _imageAvailableSemaphores[i], nullptr);
-            vkDestroyFence(device, _inFlightFences[i], nullptr);
-        }
-
         vkDestroyBuffer(device, _quadIndexBuffer, nullptr);
         vkFreeMemory(device, _quadIndexBufferMemory, nullptr);
 
         vkDestroyBuffer(device, _quadVertexBuffer, nullptr);
         vkFreeMemory(device, _quadVertexBufferMemory, nullptr);
 
-        if (_instanceBuffer != VK_NULL_HANDLE) {
-            vkUnmapMemory(device, _instanceBufferMemory);
-            vkDestroyBuffer(device, _instanceBuffer, nullptr);
-            vkFreeMemory(device, _instanceBufferMemory, nullptr);
+        for (FrameResources& frame : _frames) {
+            if (frame.mappedInstances != nullptr && frame.instanceMemory != VK_NULL_HANDLE) {
+                vkUnmapMemory(device, frame.instanceMemory);
+                frame.mappedInstances = nullptr;
+            }
+
+            if (frame.instanceBuffer != VK_NULL_HANDLE)
+                vkDestroyBuffer(device, frame.instanceBuffer, nullptr);
+
+            if (frame.instanceMemory != VK_NULL_HANDLE)
+                vkFreeMemory(device, frame.instanceMemory, nullptr);
+
+            if (frame.imageAvailable != VK_NULL_HANDLE)
+                vkDestroySemaphore(device, frame.imageAvailable, nullptr);
+
+            if (frame.renderFinished != VK_NULL_HANDLE)
+                vkDestroySemaphore(device, frame.renderFinished, nullptr);
+
+            if (frame.inFlightFence != VK_NULL_HANDLE)
+                vkDestroyFence(device, frame.inFlightFence, nullptr);
         }
 
-        for (auto framebuffer : _swapChainFramebuffers)
-            vkDestroyFramebuffer(device, framebuffer, nullptr);
-  
         vkDestroyPipeline(device, _graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
+        for (VkFramebuffer framebuffer : _swapChainFramebuffers)
+            vkDestroyFramebuffer(device, framebuffer, nullptr);
         vkDestroyRenderPass(device, _renderPass, nullptr);
     }
 
@@ -271,34 +280,12 @@ namespace rtk {
         memcpy(indexData, QUAD_INDICES.data(), indexBufferSize);
         vkUnmapMemory(_context.getDevice(), _quadIndexBufferMemory);
 
-
-        VkDeviceSize instanceBufferSize = sizeof(rtk::SpriteData) * MAX_SPRITES;
-        createBuffer(instanceBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                     _instanceBuffer, _instanceBufferMemory);
-
-        vkMapMemory(_context.getDevice(), _instanceBufferMemory, 0, instanceBufferSize, 0, &_mappedInstanceData);
-    }
-
-    void SpriteRenderer::createCommandBuffers()
-    {
-        _commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = _context.getCommandPool();
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t)_commandBuffers.size();
-
-        if (vkAllocateCommandBuffers(_context.getDevice(), &allocInfo, _commandBuffers.data()) != VK_SUCCESS)
-            throw std::runtime_error("Failed to allocate command buffers");
+        for (FrameResources& frame : _frames)
+            createInstanceBuffer(frame, SpritesPerPage);
     }
 
     void SpriteRenderer::createSyncObjects()
     {
-        _imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        _renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        _inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-
         VkSemaphoreCreateInfo semaphoreInfo{};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -307,34 +294,45 @@ namespace rtk {
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         VkDevice device = _context.getDevice();
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-            if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-                vkCreateSemaphore(device, &semaphoreInfo, nullptr, &_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(device, &fenceInfo, nullptr, &_inFlightFences[i]) != VK_SUCCESS)
-                throw std::runtime_error("Failed to create synchronization objects");
+
+        for (FrameResources& frame : _frames)
+            if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &frame.imageAvailable) != VK_SUCCESS ||
+                vkCreateSemaphore(device, &semaphoreInfo, nullptr, &frame.renderFinished) != VK_SUCCESS ||
+                vkCreateFence(device, &fenceInfo, nullptr, &frame.inFlightFence) != VK_SUCCESS)
+                throw std::runtime_error("Failed to create frame synchronization objects");
     }
 
     void SpriteRenderer::beginFrame(const RGB& clearColorVal)
     {
         if (_isFrameStarted)
             throw std::runtime_error("Frame already started");
-        
+
+        FrameResources& frame = _frames[_currentFrame];
         VkDevice device = _context.getDevice();
-        vkWaitForFences(device, 1, &_inFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
+        VkCommandBuffer commandBuffer = frame.commandBuffer;
 
-        VkResult result = vkAcquireNextImageKHR(device, _context.getSwapChain(), UINT64_MAX, _imageAvailableSemaphores[_currentFrame], VK_NULL_HANDLE, &_imageIndex);
+        if (vkWaitForFences(device, 1, &frame.inFlightFence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
+            throw std::runtime_error("Failed to wait for frame fence");
 
-        if (result == VK_ERROR_OUT_OF_DATE_KHR){
+        VkResult result = vkAcquireNextImageKHR(device, _context.getSwapChain(), UINT64_MAX, frame.imageAvailable, VK_NULL_HANDLE, &_imageIndex);
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             recreateSwapChain();
             return;
         }
-        else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-            throw std::runtime_error("Failed to acquire swap chain image");
 
-        vkResetFences(device, 1, &_inFlightFences[_currentFrame]);
+        if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+            throw std::runtime_error("Failed to acquire swapchain image");
+        }
 
-        VkCommandBuffer commandBuffer = _commandBuffers[_currentFrame];
-        vkResetCommandBuffer(commandBuffer, 0);
+        frame.instanceCount = 0;
+        frame.uploadedBytes = 0;
+
+        if (vkResetFences(device, 1, &frame.inFlightFence) != VK_SUCCESS)
+            throw std::runtime_error("Failed to reset frame fence");
+
+        if (vkResetCommandBuffer(frame.commandBuffer, 0) != VK_SUCCESS)
+            throw std::runtime_error("Failed to reset command buffer");
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -355,36 +353,24 @@ namespace rtk {
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        _quadCount = 0;
         _isFrameStarted = true;
     }
 
-    void SpriteRenderer::drawSprite(const rtk::vec2& position, const rtk::vec2& size, float rotation, const uint32_t textureId)
+    void SpriteRenderer::drawSprite(const rtk::vec2& position, const rtk::vec2& size, float rotation, uint32_t textureId)
     {
-        if (!_isFrameStarted || _quadCount >= MAX_SPRITES)
-            return;
+        const SpriteData sprite{position, size, rotation, textureId, 0xFFFFFFFF, 0};
 
-        _instances.push_back({
-            position,
-            size,
-            rotation,
-            textureId,
-            0xFFFFFFFF,
-            0
-        });
-
-        _quadCount++;
+        submit(sprite);
     }
 
-void SpriteRenderer::flush()
+    void SpriteRenderer::flush()
     {
-        if (_instances.empty())
+        FrameResources& frame = _frames[_currentFrame];
+
+        if (frame.instanceCount == 0)
             return;
 
-        size_t dataSize = _instances.size() * sizeof(rtk::SpriteData);
-        memcpy(_mappedInstanceData, _instances.data(), dataSize);
-
-        VkCommandBuffer commandBuffer = _commandBuffers[_currentFrame];
+        VkCommandBuffer commandBuffer = frame.commandBuffer;
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline);
 
@@ -409,29 +395,27 @@ void SpriteRenderer::flush()
         push.projectionView = projView;
         vkCmdPushConstants(commandBuffer, _pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(SpritePushConstants), &push);
 
-        VkBuffer vertexBuffers[] = { _quadVertexBuffer, _instanceBuffer };
-        VkDeviceSize offsets[] = { 0, 0 };
+        VkBuffer vertexBuffers[] = {_quadVertexBuffer,frame.instanceBuffer};
+        VkDeviceSize offsets[] = {0, 0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
-        
+
         vkCmdBindIndexBuffer(commandBuffer, _quadIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
         VkDescriptorSet descriptorSet = _textureManager.getDescriptorSet();
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-        vkCmdDrawIndexed(commandBuffer, 6, static_cast<uint32_t>(_instances.size()), 0, 0, 0);
-
-        _instances.clear();
-        _quadCount = 0;
+        vkCmdDrawIndexed(commandBuffer, 6, static_cast<uint32_t>(frame.instanceCount), 0, 0, 0 );
     }
 
     void SpriteRenderer::endFrame()
     {
+        FrameResources& frame = _frames[_currentFrame];
         if (!_isFrameStarted)
             return;
 
         flush();
 
-        VkCommandBuffer commandBuffer = _commandBuffers[_currentFrame];
+        VkCommandBuffer commandBuffer = frame.commandBuffer;
         vkCmdEndRenderPass(commandBuffer);
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
@@ -440,7 +424,8 @@ void SpriteRenderer::flush()
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = {_imageAvailableSemaphores[_currentFrame]};
+        VkSemaphore waitSemaphores[] = {frame.imageAvailable};
+
         VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
@@ -449,12 +434,12 @@ void SpriteRenderer::flush()
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
 
-        VkSemaphore signalSemaphores[] = {_renderFinishedSemaphores[_currentFrame]};
+        VkSemaphore signalSemaphores[] = {frame.renderFinished};
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
-        if (vkQueueSubmit(_context.getGraphicsQueue(), 1, &submitInfo, _inFlightFences[_currentFrame]) != VK_SUCCESS)
-            throw std::runtime_error("Failed to submit draw command buffer");
+        if (vkQueueSubmit(_context.getGraphicsQueue(), 1, &submitInfo, frame.inFlightFence) != VK_SUCCESS)
+            throw std::runtime_error("Failed to submit frame");
 
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -470,12 +455,12 @@ void SpriteRenderer::flush()
         VkResult result = vkQueuePresentKHR(_context.getPresentQueue(), &presentInfo);
 
 
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
             recreateSwapChain();
-        } else if (result != VK_SUCCESS)
+        else if (result != VK_SUCCESS)
             throw std::runtime_error("Failed to present swap chain image");
 
-        _currentFrame = (_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        _currentFrame =(_currentFrame + 1) % MaxFramesInFlight;
         _isFrameStarted = false;
     }
 
@@ -501,7 +486,8 @@ void SpriteRenderer::flush()
         if (vkAllocateMemory(_context.getDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
             throw std::runtime_error("Failed to allocate buffer memory");
 
-        vkBindBufferMemory(_context.getDevice(), buffer, bufferMemory, 0);
+        if (vkBindBufferMemory(_context.getDevice(), buffer, bufferMemory, 0) != VK_SUCCESS)
+            throw std::runtime_error("Failed to bind buffer memory");
     }
 
     VkShaderModule SpriteRenderer::createShaderModule(const std::vector<char>& code)
@@ -543,5 +529,126 @@ void SpriteRenderer::flush()
         _context.recreateSwapChain();
 
         createFramebuffers();
+    }
+
+    void SpriteRenderer::createInstanceBuffer(FrameResources& frame, std::size_t capacity) 
+    {
+        const VkDeviceSize bufferSize = capacity * sizeof(SpriteData);
+
+        createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            frame.instanceBuffer, frame.instanceMemory);
+
+        if (vkMapMemory(_context.getDevice(), frame.instanceMemory, 0, bufferSize, 0, &frame.mappedInstances) != VK_SUCCESS) {
+            vkDestroyBuffer(_context.getDevice(), frame.instanceBuffer, nullptr);
+
+            vkFreeMemory(_context.getDevice(),frame.instanceMemory,nullptr);
+
+            frame.instanceBuffer = VK_NULL_HANDLE;
+            frame.instanceMemory = VK_NULL_HANDLE;
+
+            throw std::runtime_error("Failed to map instance buffer with capacity " + std::to_string(capacity));
+        }
+
+        frame.instanceCapacity = capacity;
+    }
+
+    void SpriteRenderer::createCommandBuffers()
+    {
+        std::array<VkCommandBuffer, MaxFramesInFlight> commandBuffers{};
+
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = _context.getCommandPool();
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
+
+        if (vkAllocateCommandBuffers(_context.getDevice(), &allocInfo, commandBuffers.data()) != VK_SUCCESS)
+            throw std::runtime_error("Failed to allocate command buffers");
+
+        for (std::size_t i = 0; i < MaxFramesInFlight; i++)
+            _frames[i].commandBuffer = commandBuffers[i];
+    }
+
+    void SpriteRenderer::submit(const SpriteData& sprite)
+    {
+        submit(std::span<const SpriteData>(&sprite, 1));
+    }
+
+    void SpriteRenderer::submit(std::span<const SpriteData> sprites)
+    {
+        if (!_isFrameStarted)
+            throw std::runtime_error("submit() called outside a frame");
+
+        if (sprites.empty())
+            return;
+
+        FrameResources& frame = _frames[_currentFrame];
+        if (sprites.size() > std::numeric_limits<uint32_t>::max() - frame.instanceCount)
+            throw std::runtime_error("Too many instances for one draw call");
+
+        const std::size_t requiredCapacity = frame.instanceCount + sprites.size();
+
+        ensureInstanceCapacity(frame, requiredCapacity);
+
+        auto* destination = static_cast<SpriteData*>(frame.mappedInstances) + frame.instanceCount;
+
+        std::memcpy(destination, sprites.data(), sprites.size_bytes());
+
+        frame.instanceCount += sprites.size();
+        frame.uploadedBytes = frame.instanceCount * sizeof(SpriteData);
+    }
+
+    void SpriteRenderer::ensureInstanceCapacity(FrameResources& frame, std::size_t requiredCapacity)
+    {
+        if (requiredCapacity <= frame.instanceCapacity)
+            return;
+
+        if (requiredCapacity > std::numeric_limits<std::size_t>::max() - (SpritesPerPage - 1))
+            throw std::runtime_error("Instance capacity overflow: " + std::to_string(requiredCapacity));
+
+        const std::size_t newCapacity =
+            ((requiredCapacity + SpritesPerPage - 1) / SpritesPerPage) * SpritesPerPage;
+
+        if (newCapacity > std::numeric_limits<std::size_t>::max() / sizeof(SpriteData) ||
+            newCapacity > std::numeric_limits<VkDeviceSize>::max() / sizeof(SpriteData))
+            throw std::runtime_error("Instance buffer size overflow: " + std::to_string(requiredCapacity));
+
+        VkDevice device = _context.getDevice();
+        FrameResources replacement{};
+
+        try {
+            createInstanceBuffer(replacement, newCapacity);
+        } catch (const std::exception& error) {
+            if (replacement.mappedInstances != nullptr)
+                vkUnmapMemory(device, replacement.instanceMemory);
+
+            if (replacement.instanceBuffer != VK_NULL_HANDLE)
+                vkDestroyBuffer(device, replacement.instanceBuffer, nullptr);
+
+            if (replacement.instanceMemory != VK_NULL_HANDLE)
+                vkFreeMemory(device, replacement.instanceMemory, nullptr);
+
+            throw std::runtime_error("Failed to grow instance buffer for capacity " +std::to_string(requiredCapacity) + ": " + error.what());
+        }
+
+        if (frame.instanceCount != 0)
+            std::memcpy(replacement.mappedInstances, frame.mappedInstances,
+                frame.instanceCount * sizeof(SpriteData));
+
+        if (frame.mappedInstances != nullptr)
+            vkUnmapMemory(device, frame.instanceMemory);
+
+        if (frame.instanceBuffer != VK_NULL_HANDLE)
+            vkDestroyBuffer(device, frame.instanceBuffer, nullptr);
+
+        if (frame.instanceMemory != VK_NULL_HANDLE)
+            vkFreeMemory(device, frame.instanceMemory, nullptr);
+
+        frame.instanceBuffer = replacement.instanceBuffer;
+        frame.instanceMemory = replacement.instanceMemory;
+        frame.mappedInstances = replacement.mappedInstances;
+        frame.instanceCapacity = replacement.instanceCapacity;
+        frame.reallocationCount++;
     }
 }

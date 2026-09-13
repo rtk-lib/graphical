@@ -11,6 +11,8 @@
 #include <array>
 #include <vector>
 #include <string>
+#include <limits>
+#include <span>
 
 /*quad for display*/
 #define QUAD 4
@@ -25,6 +27,24 @@
 #define MAX_INDICES 6
 
 namespace rtk {
+
+
+    struct FrameResources {
+       VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+
+       VkSemaphore imageAvailable = VK_NULL_HANDLE;
+       VkSemaphore renderFinished = VK_NULL_HANDLE;
+       VkFence inFlightFence = VK_NULL_HANDLE;
+
+       VkBuffer instanceBuffer = VK_NULL_HANDLE;
+       VkDeviceMemory instanceMemory = VK_NULL_HANDLE;
+       void* mappedInstances = nullptr;
+
+       std::size_t instanceCount = 0;
+       std::size_t instanceCapacity = 0;
+       std::size_t uploadedBytes = 0;
+       std::size_t reallocationCount = 0;
+    };
 
     /**
      * @brief Structure representing a single vertex of a 2D sprite.
@@ -94,13 +114,27 @@ namespace rtk {
         void beginFrame(const RGB& clearColor = {0, 0, 0});
 
         /**
-         * @brief Adds a sprite to the current rendering batch.
+         * @brief Adds a sprite to the current rendering batch from raw info.
          * @param position The position of the sprite.
          * @param size The size of the sprite.
          * @param rotation The rotation of the sprite in degrees.
          * @param textureId The ID of the texture from the bindless array.
          */
         void drawSprite(const rtk::vec2& position, const rtk::vec2& size, float rotation, const uint32_t textureId);
+
+
+        /**
+         * @brief Adds a sprite to the current rendering batch from sprite data.
+         * @param sprite sprite data from rtk::sprite
+         */
+        void submit(const SpriteData& sprite);
+
+        /**
+         * @brief Adds an array of sprites to the current rendering batch, from an array of sprite data.
+         * @param sprite sprite data from rtk::sprite
+         */
+        void submit(std::span<const SpriteData> sprites);
+
 
         /**
          * @brief Ends the current frame, flushing all batched sprites to the GPU and presenting.
@@ -122,15 +156,6 @@ namespace rtk {
         VkBuffer _quadIndexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory _quadIndexBufferMemory = VK_NULL_HANDLE;
 
-        uint32_t _quadCount = 0;
-
-        const int MAX_FRAMES_IN_FLIGHT = 2;
-        std::vector<VkCommandBuffer> _commandBuffers;
-        std::vector<VkSemaphore> _imageAvailableSemaphores;
-        std::vector<VkSemaphore> _renderFinishedSemaphores;
-        std::vector<VkFence> _inFlightFences;
-
-        uint32_t _currentFrame = 0;
         uint32_t _imageIndex = 0;
         bool _isFrameStarted = false;
 
@@ -139,6 +164,12 @@ namespace rtk {
         VkBuffer _instanceBuffer = VK_NULL_HANDLE;
         VkDeviceMemory _instanceBufferMemory = VK_NULL_HANDLE;
         void* _mappedInstanceData = nullptr;
+
+        static constexpr std::size_t MaxFramesInFlight = 2;
+        static constexpr std::size_t SpritesPerPage = 16'384;
+
+        std::array<FrameResources, MaxFramesInFlight> _frames{};
+        std::size_t _currentFrame = 0;
 
         void createRenderPass();
         void createGraphicsPipeline();
@@ -150,6 +181,9 @@ namespace rtk {
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
         VkShaderModule createShaderModule(const std::vector<char>& code);
         std::vector<char> readFile(const std::string& filename);
+
+        void createInstanceBuffer(FrameResources& frame, std::size_t capacity);
+        void ensureInstanceCapacity(FrameResources& frame, std::size_t requiredCapacity);
 
         void recreateSwapChain();
     };
