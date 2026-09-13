@@ -67,7 +67,7 @@ namespace rtk
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) const;
         SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) const;
-        bool isDeviceSuitable(VkPhysicalDevice device);
+        bool isDeviceSuitable(VkPhysicalDevice device, bool useVirtualGpu);
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
         VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
@@ -79,8 +79,11 @@ namespace rtk
         VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
         VkDevice _device = VK_NULL_HANDLE;
 
+        std::vector<VkPhysicalDevice> _virtualGpuPool = {};
+
         VkQueue _graphicsQueue = VK_NULL_HANDLE;
         VkQueue _presentQueue = VK_NULL_HANDLE;
+
 
         VkSwapchainKHR _swapChain = VK_NULL_HANDLE;
         std::vector<VkImage> _swapChainImages;

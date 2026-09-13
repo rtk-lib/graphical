@@ -95,11 +95,18 @@ namespace rtk
 
         /* Select the first device that meets all application requirements (queue support, swapchain, features) */
         for (const auto& device : devices)
-            if (isDeviceSuitable(device)){
+            if (isDeviceSuitable(device, false)){
                 _physicalDevice = device;
                 break;
             }
 
+        if (_physicalDevice == VK_NULL_HANDLE){
+            for (const auto& device : devices)
+                if (isDeviceSuitable(device, true)){
+                    _physicalDevice = device;
+                    break;
+                }
+        }
         if (_physicalDevice == VK_NULL_HANDLE)
             throw std::runtime_error("Failed to find a suitable GPU!");
     }
@@ -368,7 +375,18 @@ namespace rtk
         return details;
     }
 
-    bool VulkanContext::isDeviceSuitable(VkPhysicalDevice device) {
+    bool VulkanContext::isDeviceSuitable(VkPhysicalDevice device, bool useVirtualGpu) {
+
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+        bool isDiscrete = (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
+
+        if (isDiscrete == false && useVirtualGpu == false){
+            _virtualGpuPool.push_back(device);
+            return false;
+        }
+
         QueueFamilyIndices indices = findQueueFamilies(device);
         bool extensionsSupported = checkDeviceExtensionSupport(device);
         bool swapChainAdequate = false;

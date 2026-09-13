@@ -21,7 +21,9 @@ int main()
     rtk::Texture testTexId = rWindow.loadTexture("texture.png");
     rtk::Sprite sprite(testTexId);
 
-    sprite.setPosition({1920.0f / 2 - (1920 / 4), 0.0f / 2});
+    rtk::vec2 pSprite = {1920.0f / 2 - (1920 / 4), 0.0f / 2};
+
+    sprite.setPosition(pSprite);
     sprite.setSize({1000.0f, 1000.0f});
     sprite.setRotation(0.0f);
 
@@ -29,9 +31,14 @@ int main()
 
     rtk::RGB clearColor = {100, 100, 100};
 
+    
+
     while (rWindow.pollEvents(rtkEvent)) {
         rWindow.beginFrame(clearColor);
-        sprite.setRotation(0.0f);
+        pSprite.x++;
+        if (pSprite.x == 1920)
+            pSprite.x = 0;
+        sprite.setPosition(pSprite);
         rWindow.drawSprite(sprite);
         rWindow.endFrame();
     }
