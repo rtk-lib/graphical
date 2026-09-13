@@ -97,7 +97,11 @@ namespace rtk
             "VK_LAYER_KHRONOS_validation"
         };
         const std::vector<const char*> _deviceExtensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+
+            #ifdef __APPLE__
+            "VK_KHR_portability_subset"
+            #endif
         };
 
         const uint32_t _width;

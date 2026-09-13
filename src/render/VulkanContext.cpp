@@ -8,7 +8,7 @@ namespace rtk
 {
     VulkanContext::VulkanContext(Window& window) : _window(window), _width(window.getWindowSizeWidth()), _height(window.getWindowSizeHeight())
     {
-        createInstance();   
+        createInstance();
         createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
@@ -56,6 +56,12 @@ namespace rtk
 
         /*Get VKH SWAPCHAIN extension*/
         auto extensions = getRequiredExtensions();
+
+        #ifdef __APPLE__
+        extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+        #endif
+
         createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
 

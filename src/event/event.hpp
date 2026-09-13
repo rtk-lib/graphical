@@ -87,14 +87,14 @@ namespace rtk {
         }
 
         [[nodiscard]]
-        bool isKeyReleased(Key key) const
+        bool isKeyReleased(rtk::Key key) const
         {
             const std::size_t index = keyToIndex(key);
 
             if (key == Key::Unknown || index >= RTK_KEYS_TAB_SIZE)
                 return false;
 
-            return _keyReleased[index];
+            return translateKey(key);
         }
     };
 }
