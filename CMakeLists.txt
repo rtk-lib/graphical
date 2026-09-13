@@ -11,7 +11,7 @@ endif()
 file(GLOB_RECURSE SRC_FILES "src/*.cpp" "src/*.mm")
 
 #depend on what test you need
-file(GLOB_RECURSE TEST_FILES "test/test100KS.rtk.cpp")
+file(GLOB_RECURSE TEST_FILES "test/renderWindowExemple.cpp")
 
 list(REMOVE_ITEM SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowLinux.cpp"

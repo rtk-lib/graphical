@@ -72,9 +72,10 @@ namespace rtk {
             * Sprite Render *
             \***************/
 
-            void beginFrame(const rtk::RGB &color)
+            [[nodiscard]]
+            bool beginFrame(const rtk::RGB &color)
             {
-                _renderer.beginFrame(color);
+                return _renderer.beginFrame(color);
             }
 
             void drawSpriteFromRaw(const rtk::vec2& position, const rtk::vec2& size, float rotation, const rtk::Texture &texture)

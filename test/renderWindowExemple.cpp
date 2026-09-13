@@ -31,10 +31,9 @@ int main()
 
     rtk::RGB clearColor = {100, 100, 100};
 
-    
-
     while (rWindow.pollEvents(rtkEvent)) {
-        rWindow.beginFrame(clearColor);
+        if (!rWindow.beginFrame(clearColor))
+            continue;
         pSprite.x++;
         if (pSprite.x == 1920)
             pSprite.x = 0;
