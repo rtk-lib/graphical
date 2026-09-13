@@ -11,15 +11,23 @@ endif()
 file(GLOB_RECURSE SRC_FILES "src/*.cpp" "src/*.mm")
 
 #depend on what test you need
-file(GLOB_RECURSE TEST_FILES "test/renderWindowExemple.cpp")
+file(GLOB_RECURSE TEST_FILES "test/test100KS.rtk.cpp")
 
-list(REMOVE_ITEM SRC_FILES 
+list(REMOVE_ITEM SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowLinux.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowWindows.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowMac.mm"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/window/window.cpp"
 )
 add_executable(graphical_test ${TEST_FILES})
+
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(graphical_test PRIVATE
+        $<$<CONFIG:Release>:-O3>
+    )
+endif()
+
 target_include_directories(graphical_test PRIVATE include src src/stb)
 
 find_package(Vulkan REQUIRED)
@@ -58,7 +66,7 @@ if(GLSLC_COMPILER)
         )
         list(APPEND SHADER_OUTPUTS ${OUTPUT_SPV})
     endforeach()
-    
+
     add_custom_target(compile_shaders ALL DEPENDS ${SHADER_OUTPUTS})
     add_dependencies(graphical_test compile_shaders)
 else()
