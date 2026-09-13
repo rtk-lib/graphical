@@ -2,6 +2,7 @@
 
 #include "../window/window.hpp"
 #include <vulkan/vulkan.h>
+#include "../Logger/Logger.hpp"
 #include <vector>
 #include <stdexcept>
 #include <optional>
@@ -77,10 +78,13 @@ namespace rtk
         }
     }
 
-    inline void checkVkR(VkResult result, const char *error = {"Vulkan error"})
+    inline void checkVkR(VkResult result, const char* operation = {"Vulkan Error"})
     {
+        if (result < 0)
+            throw std::runtime_error(std::string(operation) + " failed with " + vkResultToString(result));
+
         if (result != VK_SUCCESS)
-            throw std::runtime_error(std::string(error) + " failed with " + vkResultToString(result) + " (" + std::to_string(static_cast<int>(result)) + ")");
+            LOG_WARN(std::string(operation) + " returned " + vkResultToString(result));
     }
 
     struct QueueFamilyIndices {
