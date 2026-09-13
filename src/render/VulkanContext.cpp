@@ -8,7 +8,7 @@ namespace rtk
 {
     VulkanContext::VulkanContext(Window& window) : _window(window), _width(window.getWindowSizeWidth()), _height(window.getWindowSizeHeight())
     {
-        createInstance();
+        createInstance();   
         createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
@@ -35,13 +35,17 @@ namespace rtk
 
     void VulkanContext::createInstance()
     {
+        /*Check Validation like VK_LAYER_KHRONOS_validation aka KHRONOS*/
         if (_enableValidationLayers && !checkValidationLayerSupport())
             throw std::runtime_error("Validation layers requested, but not available!");
 
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "RTK Vulkan Context";
+
+        /*Depracted*/
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+
         appInfo.pEngineName = "RTK Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_2;
@@ -50,6 +54,7 @@ namespace rtk
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
 
+        /*Get VKH SWAPCHAIN extension*/
         auto extensions = getRequiredExtensions();
         createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
@@ -66,7 +71,10 @@ namespace rtk
 
     void VulkanContext::createSurface()
     {
+        /*Create the surface into the window class*/
         _window.createSurface(_instance);
+
+        /*Get the surface from the window*/
         _surface = (VkSurfaceKHR)_window.getSurface();
 
         if (!_surface)
@@ -298,10 +306,14 @@ namespace rtk
 
     bool VulkanContext::checkDeviceExtensionSupport(VkPhysicalDevice device) {
         uint32_t extensionCount;
+
+        /*Get the number of extension*/
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        /*Get all the extension possible*/
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
+        /*FIND VKR_SWAPCHAIN EXTENSION*/
         std::set<std::string> requiredExtensions(_deviceExtensions.begin(), _deviceExtensions.end());
         for (const auto& extension : availableExtensions)
             requiredExtensions.erase(extension.extensionName);
