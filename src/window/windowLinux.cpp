@@ -116,10 +116,10 @@ namespace rtk
         if (vkCreateXlibSurfaceKHR((VkInstance)vkInstance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
             LOG_ERROR("Failed to create Xlib Vulkan surface");
         } else {
-            _surface = (uint64_t)surface;
+            _surface = surface;
             LOG_INFO("Xlib Vulkan surface created");
         }
     }
 
-    uint64_t Window::getSurface() const { return _surface; }
+    VkSurfaceKHR Window::getSurface() const { return _surface; }
 }

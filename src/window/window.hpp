@@ -5,6 +5,8 @@
 
 #include "../event/event.hpp"
 
+#include <vulkan/vulkan_core.h>
+
 namespace rtk 
 {
     /**
@@ -55,7 +57,7 @@ namespace rtk
 
             std::vector<const char*> getRequiredExtensions() const;
             void createSurface(void *vkInstance);
-            uint64_t getSurface() const;
+            VkSurfaceKHR getSurface() const;
 
             /**
              * @brief Poll window events (like close, resize, inputs).
@@ -73,7 +75,7 @@ namespace rtk
             uint64_t _windowHandle;
             
             void *_vkInstance;
-            uint64_t _surface;
+            VkSurfaceKHR _surface;
             bool _isOpen;
 
             const uint32_t _width;
