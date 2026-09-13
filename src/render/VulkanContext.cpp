@@ -135,7 +135,7 @@ namespace rtk
         }
 
         VkPhysicalDeviceFeatures deviceFeatures{};
-        deviceFeatures.samplerAnisotropy = VK_TRUE;
+        deviceFeatures.samplerAnisotropy = VK_FALSE;
 
         VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
         indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
@@ -381,31 +381,55 @@ namespace rtk
         return details;
     }
 
-    bool VulkanContext::isDeviceSuitable(VkPhysicalDevice device, bool useVirtualGpu) {
+    bool VulkanContext::isDeviceSuitable(VkPhysicalDevice device, bool allowNonDiscrete)
+    {
+        VkPhysicalDeviceProperties properties{};
+        vkGetPhysicalDeviceProperties(device, &properties);
 
-        VkPhysicalDeviceProperties deviceProperties;
-        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        const bool isDiscrete = properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
 
-        bool isDiscrete = (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
-
-        if (isDiscrete == false && useVirtualGpu == false){
+        if (!isDiscrete && !allowNonDiscrete) {
             _virtualGpuPool.push_back(device);
             return false;
         }
 
-        QueueFamilyIndices indices = findQueueFamilies(device);
-        bool extensionsSupported = checkDeviceExtensionSupport(device);
+        const QueueFamilyIndices indices = findQueueFamilies(device);
+
+        const bool extensionsSupported = checkDeviceExtensionSupport(device);
+
         bool swapChainAdequate = false;
 
         if (extensionsSupported) {
-            SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+            const SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+
             swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
-        
-        VkPhysicalDeviceFeatures supportedFeatures;
-        vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-        return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+        VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
+        indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+
+        VkPhysicalDeviceFeatures2 features{};
+        features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        features.pNext = &indexingFeatures;
+
+        vkGetPhysicalDeviceFeatures2(device, &features);
+
+        const bool bindlessSupported = indexingFeatures.descriptorBindingPartiallyBound == VK_TRUE &&
+            indexingFeatures.runtimeDescriptorArray == VK_TRUE &&
+            indexingFeatures.shaderSampledImageArrayNonUniformIndexing == VK_TRUE;
+
+        constexpr uint32_t RequiredTextures = 1000;
+
+        const bool descriptorLimitsSupported =
+            properties.limits.maxPerStageDescriptorSamplers >= RequiredTextures &&
+            properties.limits.maxPerStageDescriptorSampledImages >= RequiredTextures &&
+            properties.limits.maxDescriptorSetSamplers >= RequiredTextures &&
+            properties.limits.maxDescriptorSetSampledImages >= RequiredTextures &&
+            properties.limits.maxPerStageResources >= RequiredTextures;
+
+        const bool vulkan12Supported = properties.apiVersion >= VK_API_VERSION_1_2;
+
+        return indices.isComplete() && extensionsSupported && swapChainAdequate && bindlessSupported && descriptorLimitsSupported && vulkan12Supported;
     }
 
     VkSurfaceFormatKHR VulkanContext::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
