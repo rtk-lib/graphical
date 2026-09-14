@@ -7,6 +7,10 @@
 #include <stdexcept>
 #include <optional>
 #include <string>
+#include <iostream>
+#include <set>
+#include <cstring>
+#include <algorithm>
 
 namespace rtk
 {
