@@ -19,11 +19,15 @@ int main()
     sonicSprite.setSize({300.0f, 300.0f});
     sonicSprite.setRotation(0.0f);
 
-    marioSprite.setPosition({1100.0f, 400.0f});
+    uint16_t moveX = 0;
+    sonicSprite.setTextureRect({moveX, 0, 607, 794});
+    float x = 1100.0f;
+    marioSprite.setPosition({x, 400.0f});
     marioSprite.setSize({300.0f, 300.0f});
     marioSprite.setRotation(0.0f);
 
-    marioSprite.setFlipY(true);
+    marioSprite.setFlipX(true);
+
 
     rtk::Event rtkEvent;
     rtk::RGB clearColor = {100, 100, 100};
@@ -31,6 +35,13 @@ int main()
     while (rWindow.pollEvents(rtkEvent)) {
         if (!rWindow.beginFrame(clearColor))
             continue;
+
+        if (rtkEvent.isKeyPressed(rtk::Key::A)){
+            x++;
+            moveX++;
+            marioSprite.setPosition({x, 400.0f});
+            sonicSprite.setTextureRect({moveX, 0, 607, 794});
+        }
 
         rWindow.drawSprite(sonicSprite);
         rWindow.drawSprite(marioSprite);
