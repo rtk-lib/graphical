@@ -30,8 +30,10 @@ namespace rtk
     void VulkanContext::createInstance()
     {
         /*Check Validation like VK_LAYER_KHRONOS_validation aka KHRONOS*/
-        if (_enableValidationLayers && !checkValidationLayerSupport())
-            throw std::runtime_error("Validation layers requested, but not available!");
+        if (_enableValidationLayers && !checkValidationLayerSupport()) {
+            LOG_WARN("Validation layers requested, but not available! Disabling them.");
+            _enableValidationLayers = false;
+        }
 
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;

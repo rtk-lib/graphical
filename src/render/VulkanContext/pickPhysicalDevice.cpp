@@ -51,7 +51,11 @@ namespace rtk
 
         const bool vulkan12Supported = properties.apiVersion >= VK_API_VERSION_1_2;
 
+#ifdef __APPLE__
+        return indices.isComplete() && extensionsSupported && swapChainAdequate && bindlessSupported && vulkan12Supported;
+#else
         return indices.isComplete() && extensionsSupported && swapChainAdequate && bindlessSupported && descriptorLimitsSupported && vulkan12Supported;
+#endif
     }
 
     bool VulkanContext::checkDeviceExtensionSupport(VkPhysicalDevice device)

@@ -191,9 +191,9 @@ namespace rtk
         const uint32_t _height;
 
 #ifdef NDEBUG
-        const bool _enableValidationLayers = false;
+        bool _enableValidationLayers = false;
 #else
-        const bool _enableValidationLayers = true;
+        bool _enableValidationLayers = true;
 #endif
     };
 }
