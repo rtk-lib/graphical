@@ -20,12 +20,15 @@ namespace rtk
         }
 
         VkPhysicalDeviceFeatures deviceFeatures{};
+        /*Disabeld Anisotropy for less complexity*/
         deviceFeatures.samplerAnisotropy = VK_FALSE;
 
         VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
         indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+
         indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
         indexingFeatures.runtimeDescriptorArray = VK_TRUE;
+        /*Enables non-uniform indexing in shaders. Prevents texture bleeding/glitches when adjacent pixels in a subgroup sample from different textures.*/
         indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 
         VkDeviceCreateInfo createInfo{};

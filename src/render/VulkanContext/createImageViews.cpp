@@ -1,4 +1,4 @@
-#include "../VulkanContext.hpp" 
+#include "../VulkanContext.hpp"
 
 
 namespace rtk

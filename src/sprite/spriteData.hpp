@@ -25,7 +25,7 @@ namespace rtk
         uint8_t a{255};
     };
 
-    /*
+    /**
      * @brief SpriteData struct who contain information about the sprite
      * 64 byte struct btw
     */

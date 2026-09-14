@@ -2,6 +2,10 @@
 
 namespace rtk
 {
+
+    /**
+     * @brief try to take the B8G8R8A8 Format SRGB
+    */
     VkSurfaceFormatKHR VulkanContext::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
         for (const auto& availableFormat : availableFormats)
             if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
@@ -9,6 +13,9 @@ namespace rtk
         return availableFormats[0];
     }
 
+    /**
+     * @brief check triple buffering, or classic V-Sync
+    */
     VkPresentModeKHR VulkanContext::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
         for (const auto& availablePresentMode : availablePresentModes)
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
@@ -16,6 +23,9 @@ namespace rtk
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
+    /**
+     * @brief return the current resolution hardware of the screen
+    */
     VkExtent2D VulkanContext::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
         if (capabilities.currentExtent.width != UINT32_MAX)
             return capabilities.currentExtent;
@@ -27,6 +37,9 @@ namespace rtk
         }
     }
 
+    /**
+     * @brief recover all the information for color, resolution, or Swap Mode
+    */
     SwapChainSupportDetails VulkanContext::querySwapChainSupport(VkPhysicalDevice device) const {
         SwapChainSupportDetails details;
         checkVkR(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, _surface, &details.capabilities));

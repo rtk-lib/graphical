@@ -2,6 +2,9 @@
 
 namespace rtk
 {
+    /**
+     * @brief give info to how use the buffer of sprite data
+    */
     void VulkanContext::createCommandPool()
     {
         QueueFamilyIndices queueFamilyIndices = findQueueFamilies(_physicalDevice);
