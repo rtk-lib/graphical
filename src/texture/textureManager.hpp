@@ -10,7 +10,14 @@
 #include <cstdint>
 #include <vulkan/vulkan.h>
 
+#include <stdexcept>
+
+
+#define MISSING_TEXTURE_IDX 0
+
 namespace rtk {
+
+    class mistickError : public std::exception {};
 
     struct TextureData {
         VkImage image;
@@ -50,5 +57,7 @@ namespace rtk {
         void createSampler();
         void createDescriptorResources();
         void updateDescriptorSet(uint32_t index, VkImageView imageView);
+
+        Texture missingTexture{0};
     };
 }

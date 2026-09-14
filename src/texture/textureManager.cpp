@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstring>
 
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 namespace rtk {
@@ -12,6 +13,18 @@ namespace rtk {
     {
         createSampler();
         createDescriptorResources();
+
+        loadTexture("assets/MissingTexture.png");
+        const std::string missingPath =
+        "assets/MissingTexture.png";
+
+        TextureData data = createVulkanTexture(missingPath);
+
+        _textures.push_back(data);
+        _textureCache[missingPath] = MISSING_TEXTURE_IDX;
+        updateDescriptorSet(MISSING_TEXTURE_IDX, data.view);
+
+        missingTexture = Texture(MISSING_TEXTURE_IDX);
     }
 
     TextureManager::~TextureManager()
@@ -23,7 +36,7 @@ namespace rtk {
             vkDestroyImage(device, tex.image, nullptr);
             vkFreeMemory(device, tex.memory, nullptr);
         }
-        
+
         if (_textureSampler)
             vkDestroySampler(device, _textureSampler, nullptr);
 
@@ -83,7 +96,7 @@ namespace rtk {
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
         VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
-        
+
         VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo{};
         extendedInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
         extendedInfo.bindingCount = 1;
@@ -114,14 +127,23 @@ namespace rtk {
             return Texture(_textureCache[filepath]);
 
         uint32_t index = static_cast<uint32_t>(_textures.size());
-        if (index >= MAX_BINDLESS_TEXTURES)
-            throw std::runtime_error("Exceeded maximum number of bindless textures!");
 
-        TextureData texData = createVulkanTexture(filepath);
-        _textures.push_back(texData);
-        _textureCache[filepath] = index;
+        try {
+            if (index >= MAX_BINDLESS_TEXTURES)
+                throw std::runtime_error("Exceeded maximum number of bindless textures!");
 
-        updateDescriptorSet(index, texData.view);
+            TextureData texData = createVulkanTexture(filepath);
+            _textures.push_back(texData);
+            _textureCache[filepath] = index;
+
+            updateDescriptorSet(index, texData.view);
+        }
+        catch(const std::exception& e)
+        {
+            LOG_WARN(e.what());
+            LOG_WARN("Missing texture will be load");
+            return Texture(MISSING_TEXTURE_IDX);
+        }
 
         return Texture(index);
     }
@@ -165,10 +187,10 @@ namespace rtk {
         if (vkAllocateMemory(device, &allocInfo, nullptr, &stagingBufferMemory) != VK_SUCCESS)
             throw std::runtime_error("Failed to allocate staging buffer memory!");
 
-        vkBindBufferMemory(device, stagingBuffer, stagingBufferMemory, 0);
+        checkVkR(vkBindBufferMemory(device, stagingBuffer, stagingBufferMemory, 0));
 
         void *data;
-        vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+        checkVkR(vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data));
         memcpy(data, pixels, static_cast<size_t>(imageSize));
         vkUnmapMemory(device, stagingBufferMemory);
 
@@ -202,10 +224,10 @@ namespace rtk {
         if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
             throw std::runtime_error("Failed to allocate image memory!");
 
-        vkBindImageMemory(device, image, imageMemory, 0);
+        checkVkR(vkBindImageMemory(device, image, imageMemory, 0));
 
         VkCommandBuffer commandBuffer = _context.beginSingleTimeCommands();
-        
+
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -270,7 +292,7 @@ namespace rtk {
         texData.image = image;
         texData.memory = imageMemory;
         texData.view = imageView;
-        
+
         return texData;
     }
 

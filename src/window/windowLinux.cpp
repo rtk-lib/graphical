@@ -7,8 +7,9 @@
 #include <vulkan/vulkan.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/XKBlib.h>
 
-namespace rtk 
+namespace rtk
 {
     Window::Window(uint32_t width, uint32_t height, const char* title) : _isOpen(true), _width(width), _height(height)
     {
@@ -19,13 +20,16 @@ namespace rtk
             return;
         }
 
+        Bool supported = False;
+        XkbSetDetectableAutoRepeat(dpy, True, &supported);
+
         int screen = DefaultScreen(dpy);
         ::Window root = RootWindow(dpy, screen);
 
         ::Window win = XCreateSimpleWindow(dpy, root, 0, 0, width, height, 1, BlackPixel(dpy, screen), BlackPixel(dpy, screen));
         XStoreName(dpy, win, title);
 
-        XSelectInput(dpy, win, ExposureMask | KeyPressMask | StructureNotifyMask);
+        XSelectInput(dpy, win, ExposureMask | KeyPressMask | KeyReleaseMask | StructureNotifyMask);
         XMapWindow(dpy, win);
 
         Atom wmDeleteMessage = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
@@ -58,7 +62,6 @@ namespace rtk
         Display* dpy = static_cast<Display*>(_display);
         XEvent xEvent;
 
-        memset(rtkEvent._keyPressed, 0, RTK_KEYS_TAB_SIZE);
         memset(rtkEvent._keyReleased, 0, RTK_KEYS_TAB_SIZE);
 
         while (XPending(dpy) > 0) {
@@ -88,8 +91,10 @@ namespace rtk
                 case KeyRelease: {
                     const unsigned int keycode = xEvent.xkey.keycode;
 
-                    if (keycode < RTK_KEYS_TAB_SIZE)
+                    if (keycode < RTK_KEYS_TAB_SIZE) {
                         rtkEvent._keyPressed[keycode] = false;
+                        rtkEvent._keyReleased[keycode] = true;
+                    }
 
                     break;
                 }

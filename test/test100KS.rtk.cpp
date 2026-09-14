@@ -42,12 +42,11 @@ int main()
         const float branch = static_cast<float>(i % 8) * (2.0f * Pi / 8.0f);
         const float spiral = normalizedIndex * Pi * 20.0f;
         const float radius = std::sqrt(normalizedIndex) * 520.0f;
-        const float size = 1.0f + static_cast<float>(i % 3);
+        const float size = 5.0f + static_cast<float>(i % 3);
 
         particles[i] = prototype.data();
         particles[i].scale = {size, size};
         particles[i].rotation = 0.0f;
-        particles[i].colorTint = 0xFFFFFFFF;
         particles[i].flags = 0;
 
         motions[i].radius = radius;
@@ -60,6 +59,8 @@ int main()
     const auto startTime = std::chrono::steady_clock::now();
 
     while (window.pollEvents(event)) {
+        if (event.isKeyPressed(rtk::Key::A))
+            std::cout << "A\n";
     const auto currentTime = std::chrono::steady_clock::now();
     const float time = std::chrono::duration<float>(currentTime - startTime).count();
 
@@ -76,16 +77,19 @@ int main()
         particles[i].rotation = angle * (180.0f / Pi);
     }
 
-    window.beginFrame(clearColor);
+    if (!window.beginFrame(clearColor))
+        continue;
     window.draw(std::span<const rtk::SpriteData>{particles});
     window.endFrame();
 
     frameCount++;
 
+
+
     const auto benchmarkNow = std::chrono::steady_clock::now();
     const double elapsedSeconds = std::chrono::duration<double>(benchmarkNow - benchmarkStart).count();
 
-    if (!benchmarkDisplayed && elapsedSeconds >= 20.0) {
+    if (!benchmarkDisplayed && elapsedSeconds >= 10.0) {
         const double averageFps = static_cast<double>(frameCount) / elapsedSeconds;
         const double averageFrameTimeMs = 1000.0 / averageFps;
 

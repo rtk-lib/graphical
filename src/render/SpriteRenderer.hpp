@@ -27,13 +27,11 @@
 #define MAX_INDICES 6
 
 namespace rtk {
-
-
     struct FrameResources {
        VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
        VkSemaphore imageAvailable = VK_NULL_HANDLE;
-       VkSemaphore renderFinished = VK_NULL_HANDLE;
+       //VkSemaphore renderFinished = VK_NULL_HANDLE;
        VkFence inFlightFence = VK_NULL_HANDLE;
 
        VkBuffer instanceBuffer = VK_NULL_HANDLE;
@@ -111,7 +109,8 @@ namespace rtk {
          * @brief Begins a new rendering frame.
          * @param clearColor The background clear color (r, g, b). Defaults to black.
          */
-        void beginFrame(const RGB& clearColor = {0, 0, 0});
+        [[nodiscard]]
+        bool beginFrame(const RGB& clearColor = {0, 0, 0});
 
         /**
          * @brief Adds a sprite to the current rendering batch from raw info.
@@ -121,6 +120,13 @@ namespace rtk {
          * @param textureId The ID of the texture from the bindless array.
          */
         void drawSprite(const rtk::vec2& position, const rtk::vec2& size, float rotation, const uint32_t textureId);
+
+        /**
+         * @brief Adds a sprite to the current rendering batch from sprite info.
+         * @param sprite rtk::sprite to draw
+         */
+        void drawSprite(const Sprite& sprite);
+
 
 
         /**
@@ -171,6 +177,8 @@ namespace rtk {
         std::array<FrameResources, MaxFramesInFlight> _frames{};
         std::size_t _currentFrame = 0;
 
+        std::vector<VkSemaphore> _renderFinishedSemaphores;
+
         void createRenderPass();
         void createGraphicsPipeline();
         void createFramebuffers();
@@ -186,5 +194,8 @@ namespace rtk {
         void ensureInstanceCapacity(FrameResources& frame, std::size_t requiredCapacity);
 
         void recreateSwapChain();
+
+        void createRenderFinishedSemaphores();
+        void destroyRenderFinishedSemaphores();
     };
 }

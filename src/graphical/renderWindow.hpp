@@ -58,7 +58,7 @@ namespace rtk {
 
             /**
             * @brief load texture into the texture manager
-            * 
+            *
             * @param textureFile path of the file.
             * @return returns the ID of a texture
             */
@@ -72,9 +72,10 @@ namespace rtk {
             * Sprite Render *
             \***************/
 
-            void beginFrame(const rtk::RGB &color)
+            [[nodiscard]]
+            bool beginFrame(const rtk::RGB &color)
             {
-                _renderer.beginFrame(color);
+                return _renderer.beginFrame(color);
             }
 
             void drawSpriteFromRaw(const rtk::vec2& position, const rtk::vec2& size, float rotation, const rtk::Texture &texture)
@@ -84,7 +85,7 @@ namespace rtk {
 
             void drawSprite(const rtk::Sprite &sprite)
             {
-                _renderer.drawSprite(sprite.getPosition(), sprite.getSize(), sprite.getRotation(), sprite.getTextureId());
+                _renderer.drawSprite(sprite);
             }
 
             void draw(std::span<const SpriteData> sprites)
