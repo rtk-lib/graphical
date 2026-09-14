@@ -13,7 +13,7 @@
 #include <stdexcept>
 #include <string>
 
-@interface RtkMetalView : NSView
+@interface RtkMetalView : NSView <CALayerDelegate>
 @end
 @implementation RtkMetalView
 - (BOOL)acceptsFirstResponder { return YES; }

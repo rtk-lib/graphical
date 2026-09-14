@@ -82,7 +82,7 @@ namespace rtk
         }
     }
 
-    inline void checkVkR(VkResult result, const char* operation = {"Vulkan Error"})
+    inline void checkVkR(VkResult result, const char* operation = "Vulkan Error")
     {
         if (result < 0)
             throw std::runtime_error(std::string(operation) + " failed with " + vkResultToString(result));
