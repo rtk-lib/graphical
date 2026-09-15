@@ -24,9 +24,14 @@ if(NOT EXISTS "${STB_IMAGE_HEADER}")
 
     list(GET STB_DOWNLOAD_STATUS 0 STB_DOWNLOAD_ERROR)
 
-    if(NOT STB_DOWNLOAD_ERROR EQUAL 0)
+if(NOT STB_DOWNLOAD_ERROR EQUAL 0)
         message(FATAL_ERROR "Failed to download stb_image.h")
     endif()
+endif()
+
+set(STB_IMAGE_SOURCE "${STB_DIR}/stb_image.cpp")
+if(NOT EXISTS "${STB_IMAGE_SOURCE}")
+    file(WRITE "${STB_IMAGE_SOURCE}" "#define STB_IMAGE_IMPLEMENTATION\n#include \"stb_image.h\"\n")
 endif()
 
 # --------------------------------------------------------------------
