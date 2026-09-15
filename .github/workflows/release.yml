@@ -41,15 +41,15 @@ jobs:
 
       - name: Install Vulkan (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get install -y libvulkan-dev
+        run: sudo apt-get install -y libvulkan-dev libglm-dev
 
       - name: Install Vulkan (macOS)
         if: runner.os == 'macOS'
-        run: brew install vulkan-headers vulkan-loader
+        run: brew install vulkan-headers vulkan-loader glm
 
       - name: Install Vulkan (Windows)
         if: runner.os == 'Windows'
-        run: choco install vulkan-sdk --no-progress
+        run: choco install vulkan-sdk glm --no-progress
 
       - name: Configure CMake
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DRTK_REGENERATE_SHADERS=OFF
