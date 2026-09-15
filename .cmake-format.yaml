@@ -1,0 +1,6 @@
+format:
+  line_width: 140
+  tab_size: 4
+  max_subgroups_hwrap: 5
+  max_pargs_hwrap: 10
+  dangle_parens: false

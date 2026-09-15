@@ -1,0 +1,66 @@
+name: Build and Release Artifacts
+
+on:
+  release:
+    types: [published]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: rtk_graphical-linux
+          - os: windows-latest
+            artifact_name: rtk_graphical-windows
+          - os: macos-latest
+            artifact_name: rtk_graphical-macos
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxext-dev xorg-dev
+
+      - name: Install Vulkan SDK
+        uses: humblehacker/setup-vulkan-sdk@v1.2.0
+        with:
+          vulkan-query-version: 1.3.268.0
+          vulkan-components: Vulkan-Headers, Vulkan-Loader, glslc
+
+      - name: Configure CMake
+
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DRTK_REGENERATE_SHADERS=OFF
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Install (Prepare Artifact)
+        run: cmake --install build --prefix artifact_install --config Release
+
+      - name: Zip Artifacts (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cd artifact_install
+          tar -czvf ../${{ matrix.artifact_name }}.tar.gz .
+
+      - name: Zip Artifacts (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Compress-Archive -Path "artifact_install\*" -DestinationPath "${{ matrix.artifact_name }}.zip"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            *.tar.gz
+            *.zip
