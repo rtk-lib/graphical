@@ -127,6 +127,7 @@ namespace rtk
         VkFormat getSwapChainImageFormat() const { return _swapChainImageFormat; }
         VkExtent2D getSwapChainExtent() const { return _swapChainExtent; }
         VkCommandPool getCommandPool() const { return _commandPool; }
+        VkExtent2D getLogicalExtent() const { return {_width, _height}; }
 
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
         VkCommandBuffer beginSingleTimeCommands() const;
