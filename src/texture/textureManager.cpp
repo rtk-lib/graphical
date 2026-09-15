@@ -154,9 +154,28 @@ namespace rtk {
 
     TextureData TextureManager::createVulkanTexture(const std::string& filepath)
     {
-        int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load(filepath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        VkDeviceSize imageSize = texWidth * texHeight * 4;
+        int texWidth, texHeight;
+        VkDeviceSize imageSize;
+        stbi_uc* pixels = nullptr;
+        bool isSynthetic = false;
+
+        if (filepath.empty() || filepath == "assets/MissingTexture.png") {
+            texWidth = 2;
+            texHeight = 2;
+            imageSize = texWidth * texHeight * 4;
+            pixels = new stbi_uc[imageSize];
+            for (size_t i = 0; i < imageSize; i += 4) {
+                pixels[i] = 255;
+                pixels[i+1] = 0;
+                pixels[i+2] = 255;
+                pixels[i+3] = 255;
+            }
+            isSynthetic = true;
+        } else {
+            int texChannels;
+            pixels = stbi_load(filepath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+            imageSize = texWidth * texHeight * 4;
+        }
 
         if (!pixels)
             throw std::runtime_error("Failed to load texture image: " + filepath);
@@ -193,7 +212,11 @@ namespace rtk {
         memcpy(data, pixels, static_cast<size_t>(imageSize));
         vkUnmapMemory(device, stagingBufferMemory);
 
-        stbi_image_free(pixels);
+        if (isSynthetic) {
+            delete[] pixels;
+        } else {
+            stbi_image_free(pixels);
+        }
 
         VkImage image;
         VkDeviceMemory imageMemory;
