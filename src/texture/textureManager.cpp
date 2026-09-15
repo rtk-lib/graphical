@@ -3,9 +3,6 @@
 #include <iostream>
 #include <cstring>
 
-#ifdef __APPLE__
-#define STB_IMAGE_IMPLEMENTATION
-#endif
 #include "stb_image.h"
 
 namespace rtk {
