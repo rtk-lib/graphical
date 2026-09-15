@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../utils/vec2.hpp"
+#include "utils/vec2.hpp"
 
 #include <stdint.h>
 #include <vector>

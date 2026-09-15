@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../window/window.hpp"
+#include "window/window.hpp"
 #include <vulkan/vulkan.h>
-#include "../Logger/Logger.hpp"
+#include "Logger/Logger.hpp"
 #include <vector>
 #include <stdexcept>
 #include <optional>

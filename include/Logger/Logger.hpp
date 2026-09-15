@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "Sequences.hpp"
+#include "Logger/Sequences.hpp"
 
 enum level_t : uint8_t { L_DEBUG, L_INFO, L_WARN, L_ERROR, L_FATAL };
 

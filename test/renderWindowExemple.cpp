@@ -1,8 +1,8 @@
-//#include "../src/window/window.hpp"
-//#include "../src/render/VulkanContext.hpp"
-//#include "../src/texture/textureManager.hpp"
-//#include "../src/render/SpriteRenderer.hpp"
-//#include "../src/event/event.hpp"
+//#include "../include/window/window.hpp"
+//#include "../include/render/VulkanContext.hpp"
+//#include "../include/texture/textureManager.hpp"
+//#include "../include/render/SpriteRenderer.hpp"
+//#include "../include/event/event.hpp"
 
 #include "../include/graphical.hpp"
 

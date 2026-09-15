@@ -1,8 +1,8 @@
 #ifndef VK_USE_PLATFORM_METAL_EXT
 #define VK_USE_PLATFORM_METAL_EXT
 #endif
-#include "window.hpp"
-#include "../Logger/Logger.hpp"
+#include "window/window.hpp"
+#include "Logger/Logger.hpp"
 #import <Cocoa/Cocoa.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <QuartzCore/CAMetalLayer.h>

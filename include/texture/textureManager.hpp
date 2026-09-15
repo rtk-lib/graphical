@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../render/VulkanContext.hpp"
+#include "render/VulkanContext.hpp"
 
-#include "texture.hpp"
+#include "texture/texture.hpp"
 
 #include <unordered_map>
 #include <string>

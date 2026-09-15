@@ -1,10 +1,10 @@
-#include "../render/SpriteRenderer.hpp"
+#include "render/SpriteRenderer.hpp"
 
-#include "../sprite/sprite.hpp"
+#include "sprite/sprite.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../utils/vec2.hpp"
+#include "utils/vec2.hpp"
 
 namespace rtk {
     class RenderWindow

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../fwd.hpp"
+#include "fwd.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -9,17 +9,17 @@
 
 
 #if defined(_WIN32)
-    #include "keyWindow.hpp"
+    #include "event/keyWindow.hpp"
 
 #elif defined(__APPLE__) && defined(__MACH__)
     #include <TargetConditionals.h>
 
     #if TARGET_OS_OSX
-        #include "keyMac.hpp"
+        #include "event/keyMac.hpp"
     #endif
 
 #elif defined(__linux__)
-    #include "keyX11.hpp"
+    #include "event/keyX11.hpp"
 
 #else
     #error "RTK: Can be load only on linux:X11, Apple, and Window"

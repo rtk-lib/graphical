@@ -1,4 +1,4 @@
-#include "event.hpp"
+#include "event/event.hpp"
 
 bool rtk::Event::translateKey(rtk::Key key) const
 {
