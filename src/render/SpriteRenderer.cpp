@@ -3,8 +3,9 @@
 #include <stdexcept>
 #include <iostream>
 #include <cstring>
+#include <rtk/shaders/sprite_vert_spv.hpp>
+#include <rtk/shaders/sprite_frag_spv.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
 namespace rtk {
 
 
@@ -109,11 +110,8 @@ namespace rtk {
     {
         VkDevice device = _context.getDevice();
 
-        auto vertShaderCode = readFile("shaders/sprite.vert.spv");
-        auto fragShaderCode = readFile("shaders/sprite.frag.spv");
-
-        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
-        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+        VkShaderModule vertShaderModule = createShaderModule(rtk::shaders::sprite_vert_spv);
+        VkShaderModule fragShaderModule = createShaderModule(rtk::shaders::sprite_frag_spv);
 
         VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -508,12 +506,12 @@ namespace rtk {
             throw std::runtime_error("Failed to bind buffer memory");
     }
 
-    VkShaderModule SpriteRenderer::createShaderModule(const std::vector<char>& code)
+    VkShaderModule SpriteRenderer::createShaderModule(std::span<const std::uint32_t> code)
     {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = code.size();
-        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+        createInfo.codeSize = code.size_bytes();
+        createInfo.pCode = code.data();
 
         VkShaderModule shaderModule;
         if (vkCreateShaderModule(_context.getDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
@@ -521,20 +519,6 @@ namespace rtk {
         return shaderModule;
     }
 
-    std::vector<char> SpriteRenderer::readFile(const std::string& filename)
-    {
-        std::ifstream file(filename, std::ios::ate | std::ios::binary);
-        if (!file.is_open())
-            throw std::runtime_error("Failed to open file");
-
-        size_t fileSize = (size_t)file.tellg();
-        std::vector<char> buffer(fileSize);
-        file.seekg(0);
-        file.read(buffer.data(), fileSize);
-        file.close();
-
-        return buffer;
-    }
 
     void SpriteRenderer::recreateSwapChain()
     {

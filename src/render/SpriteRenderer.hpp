@@ -187,8 +187,7 @@ namespace rtk {
         void createCommandBuffers();
         void flush();
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-        VkShaderModule createShaderModule(const std::vector<char>& code);
-        std::vector<char> readFile(const std::string& filename);
+        VkShaderModule createShaderModule(std::span<const std::uint32_t> code);
 
         void createInstanceBuffer(FrameResources& frame, std::size_t capacity);
         void ensureInstanceCapacity(FrameResources& frame, std::size_t requiredCapacity);

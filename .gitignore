@@ -6,6 +6,6 @@ CMakeFiles
 Cmake_install.cmake
 CMakeCache.txt
 
-*.png
+.png
 
 cmake_install.cmake
