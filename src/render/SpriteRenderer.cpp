@@ -468,10 +468,9 @@ namespace rtk {
         const VkResult result = vkQueuePresentKHR(_context.getPresentQueue(), &presentInfo);
 
         const bool mustRecreate =
-            result == VK_ERROR_OUT_OF_DATE_KHR ||
-            result == VK_SUBOPTIMAL_KHR;
+            result == VK_ERROR_OUT_OF_DATE_KHR;
 
-        if (result != VK_SUCCESS && !mustRecreate)
+        if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && !mustRecreate)
             throw std::runtime_error("Failed to present swapchain image");
 
         _isFrameStarted = false;
