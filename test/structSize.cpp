@@ -1,13 +1,13 @@
 #include "../Logger/Logger.hpp"
 
-#include "../src/window/window.hpp"
-#include "../src/graphical/renderWindow.hpp"
-#include "../src/render/VulkanContext.hpp"
-#include "../src/render/SpriteRenderer.hpp"
-#include "../src/texture/textureManager.hpp"
-#include "../src/event/event.hpp"
+#include "../include/window/window.hpp"
+#include "../include/graphical/renderWindow.hpp"
+#include "../include/render/VulkanContext.hpp"
+#include "../include/render/SpriteRenderer.hpp"
+#include "../include/texture/textureManager.hpp"
+#include "../include/event/event.hpp"
 #include "../sprite/sprite.hpp"
-#include "../src/texture/texture.hpp"
+#include "../include/texture/texture.hpp"
 
 #include <cstddef>
 #include <sstream>

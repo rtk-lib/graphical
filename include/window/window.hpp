@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "../event/event.hpp"
+#include "event/event.hpp"
 
 #include <vulkan/vulkan_core.h>
 

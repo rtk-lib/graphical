@@ -1,5 +1,5 @@
-#include "window.hpp"
-#include "../Logger/Logger.hpp"
+#include "window/window.hpp"
+#include "Logger/Logger.hpp"
 
 #include <cstring>
 

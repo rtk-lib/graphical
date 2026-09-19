@@ -1,11 +1,11 @@
 #pragma once
 
-#include "VulkanContext.hpp"
-#include "../texture/textureManager.hpp"
+#include "render/VulkanContext.hpp"
+#include "texture/textureManager.hpp"
 
-#include "../utils/vec2.hpp"
+#include "utils/vec2.hpp"
 
-#include "../sprite/sprite.hpp"
+#include "sprite/sprite.hpp"
 
 #include <glm/glm.hpp>
 #include <array>

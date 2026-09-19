@@ -1,4 +1,4 @@
-#include "SpriteRenderer.hpp"
+#include "render/SpriteRenderer.hpp"
 #include <fstream>
 #include <stdexcept>
 #include <iostream>
@@ -404,7 +404,8 @@ namespace rtk {
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
         auto extent = _context.getSwapChainExtent();
-        glm::mat4 projView = glm::ortho(0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, -1.0f, 1.0f);
+        VkExtent2D logicalExtent = _context.getLogicalExtent();
+        glm::mat4 projView = glm::ortho(0.0f, static_cast<float>(logicalExtent.width), static_cast<float>(logicalExtent.height), 0.0f, -1.0f, 1.0f);
 
         SpritePushConstants push{};
         push.projectionView = projView;

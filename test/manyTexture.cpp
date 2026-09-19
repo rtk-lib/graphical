@@ -1,6 +1,6 @@
 #include "../include/graphical.hpp"
-#include "../src/sprite/sprite.hpp"
-#include "../src/Logger/Logger.hpp"
+#include "../include/sprite/sprite.hpp"
+#include "../include/Logger/Logger.hpp"
 
 #include <time.h>
 #include <unistd.h>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "event.hpp"
+#include "event/event.hpp"
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>

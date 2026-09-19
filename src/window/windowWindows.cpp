@@ -1,8 +1,8 @@
 /*
  * Windows (Win32) Window implementation
  */
-#include "window.hpp"
-#include "../Logger/Logger.hpp"
+#include "window/window.hpp"
+#include "Logger/Logger.hpp"
 #include <windows.h>
 
 namespace rtk 
