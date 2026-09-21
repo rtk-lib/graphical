@@ -1,9 +1,10 @@
-/*
- * Windows (Win32) Window implementation
- */
 #include "window/window.hpp"
 #include "Logger/Logger.hpp"
+#include <cstring>
 #include <windows.h>
+
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <vulkan/vulkan.h>
 
 namespace rtk 
 {
@@ -78,26 +79,54 @@ namespace rtk
         }
     }
 
-    void Window::display(RGB clearColor)
-    {
-    }
+    void Window::display(RGB clearColor) {}
 
-    uint64_t Window::getSurface() const
-    {
-        return _surface;
-    }
-
-    bool Window::pollEvents()
+    bool Window::pollEvents(rtk::Event& rtkEvent)
     {
         if (!_isOpen) return false;
         MSG msg = {};
+        memset(rtkEvent._keyReleased, 0, RTK_KEYS_TAB_SIZE);
+
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) {
                 _isOpen = false;
+            } else if (msg.message == WM_KEYDOWN) {
+                if (msg.wParam < RTK_KEYS_TAB_SIZE) {
+                    rtkEvent._keyPressed[msg.wParam] = true;
+                }
+            } else if (msg.message == WM_KEYUP) {
+                if (msg.wParam < RTK_KEYS_TAB_SIZE) {
+                    rtkEvent._keyPressed[msg.wParam] = false;
+                    rtkEvent._keyReleased[msg.wParam] = true;
+                }
             }
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
         return _isOpen;
     }
+
+    std::vector<const char*> Window::getRequiredExtensions() const
+    {
+        return { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
+    }
+
+    void Window::createSurface(void *vkInstance)
+    {
+        _vkInstance = vkInstance;
+        VkWin32SurfaceCreateInfoKHR createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+        createInfo.hwnd = reinterpret_cast<HWND>(_windowHandle);
+        createInfo.hinstance = reinterpret_cast<HINSTANCE>(_display);
+
+        VkSurfaceKHR surface;
+        if (vkCreateWin32SurfaceKHR((VkInstance)vkInstance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
+            LOG_ERROR("Failed to create Win32 Vulkan surface");
+        } else {
+            _surface = surface;
+            LOG_INFO("Win32 Vulkan surface created");
+        }
+    }
+
+    VkSurfaceKHR Window::getSurface() const { return _surface; }
 }

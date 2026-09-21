@@ -7,5 +7,6 @@ Cmake_install.cmake
 CMakeCache.txt
 
 .png
+*.so
 
 cmake_install.cmake
