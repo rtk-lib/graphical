@@ -52,7 +52,32 @@ jobs:
         run: |
           choco install vulkan-sdk --no-progress -y
 
-          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install glm:x64-windows
+          $vcpkgExe = "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe"
+          $glmInstalled = $false
+
+          for ($attempt = 1; $attempt -le 4; $attempt++) {
+            Write-Host "Installing GLM (attempt $attempt/4)..."
+
+            $process = Start-Process `
+              -FilePath $vcpkgExe `
+              -ArgumentList "install", "glm:x64-windows" `
+              -Wait `
+              -NoNewWindow `
+              -PassThru
+
+            if ($process.ExitCode -eq 0) {
+              $glmInstalled = $true
+              break
+            }
+
+            if ($attempt -lt 4) {
+              Start-Sleep -Seconds (15 * $attempt)
+            }
+          }
+
+          if (-not $glmInstalled) {
+            throw "Unable to install GLM after 4 attempts"
+          }
 
           "CMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" >> $env:GITHUB_ENV
 
