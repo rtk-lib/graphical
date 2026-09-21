@@ -11,14 +11,14 @@
 namespace rtk
 {
 
-    struct TextureRectU16 {
+    struct alignas(8) TextureRectU16 {
         uint16_t left;
         uint16_t top;
         uint16_t width;
         uint16_t height;
     };
 
-    struct ColorRGBA8 {
+    struct alignas(4) ColorRGBA8 {
         uint8_t r{255};
         uint8_t g{255};
         uint8_t b{255};

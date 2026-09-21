@@ -171,7 +171,7 @@ namespace rtk {
         VkDeviceMemory _instanceBufferMemory = VK_NULL_HANDLE;
         void* _mappedInstanceData = nullptr;
 
-        static constexpr std::size_t MaxFramesInFlight = 2;
+        static constexpr std::size_t MaxFramesInFlight = 3;
         static constexpr std::size_t SpritesPerPage = 16'384;
 
         std::array<FrameResources, MaxFramesInFlight> _frames{};

@@ -26,6 +26,10 @@
     bool* isOpen;
     bool pressed[RTK_KEYS_TAB_SIZE];
     bool released[RTK_KEYS_TAB_SIZE];
+    bool mousePressed[3];
+    bool mouseReleased[3];
+    int mouseX;
+    int mouseY;
 }
 @property (retain) NSWindow* ownedWindow;
 - (void)releaseKeys;
@@ -38,6 +42,10 @@
     for (unsigned i = 0; i < RTK_KEYS_TAB_SIZE; ++i) {
         if (pressed[i]) released[i] = true;
         pressed[i] = false;
+    }
+    for (unsigned i = 0; i < 3; ++i) {
+        if (mousePressed[i]) mouseReleased[i] = true;
+        mousePressed[i] = false;
     }
 }
 - (void)windowWillClose:(NSNotification*)notification {
@@ -102,6 +110,7 @@ namespace rtk {
                 backing:NSBackingStoreBuffered defer:NO];
             if (!window) throw std::runtime_error("Failed to create Cocoa window");
             window.releasedWhenClosed = NO;
+            window.acceptsMouseMovedEvents = YES;
             NSString* text = title ? [NSString stringWithUTF8String:title] : nil;
             window.title = text ? text : @"rtk-lib";
             RtkMetalView* view = [[RtkMetalView alloc]
@@ -196,6 +205,8 @@ namespace rtk {
             throw std::runtime_error("Poll Cocoa events on the main thread");
         std::fill(std::begin(rtkEvent._keyPressed), std::end(rtkEvent._keyPressed), false);
         std::fill(std::begin(rtkEvent._keyReleased), std::end(rtkEvent._keyReleased), false);
+        std::fill(std::begin(rtkEvent._mouseButtonPressed), std::end(rtkEvent._mouseButtonPressed), false);
+        std::fill(std::begin(rtkEvent._mouseButtonReleased), std::end(rtkEvent._mouseButtonReleased), false);
         if (!_display) return false;
         @autoreleasepool {
             RtkWindowDelegate* state = getState(_display);
@@ -217,6 +228,31 @@ namespace rtk {
                             if (!down) state->released[code] = true;
                             state->pressed[code] = down;
                         }
+                    } else if (type == NSEventTypeLeftMouseDown || type == NSEventTypeLeftMouseUp ||
+                               type == NSEventTypeRightMouseDown || type == NSEventTypeRightMouseUp ||
+                               type == NSEventTypeOtherMouseDown || type == NSEventTypeOtherMouseUp) {
+                        int button = -1;
+                        if (type == NSEventTypeLeftMouseDown || type == NSEventTypeLeftMouseUp) button = 0;
+                        else if (type == NSEventTypeRightMouseDown || type == NSEventTypeRightMouseUp) button = 1;
+                        else if (type == NSEventTypeOtherMouseDown || type == NSEventTypeOtherMouseUp) {
+                            if (event.buttonNumber == 2) button = 2;
+                        }
+
+                        if (button != -1) {
+                            bool down = (type == NSEventTypeLeftMouseDown || type == NSEventTypeRightMouseDown || type == NSEventTypeOtherMouseDown);
+                            if (!down) state->mouseReleased[button] = true;
+                            state->mousePressed[button] = down;
+                        }
+                    }
+                    if (type == NSEventTypeMouseMoved || type == NSEventTypeLeftMouseDragged ||
+                        type == NSEventTypeRightMouseDragged || type == NSEventTypeOtherMouseDragged ||
+                        type == NSEventTypeLeftMouseDown || type == NSEventTypeRightMouseDown ||
+                        type == NSEventTypeOtherMouseDown || type == NSEventTypeLeftMouseUp ||
+                        type == NSEventTypeRightMouseUp || type == NSEventTypeOtherMouseUp) {
+                        NSPoint point = [event locationInWindow];
+                        NSRect contentRect = [state.ownedWindow.contentView frame];
+                        state->mouseX = (int)point.x;
+                        state->mouseY = (int)(contentRect.size.height - point.y);
                     }
                 }
                 [NSApp sendEvent:event];
@@ -228,6 +264,13 @@ namespace rtk {
             std::copy(std::begin(state->released), std::end(state->released),
                       std::begin(rtkEvent._keyReleased));
             std::fill(std::begin(state->released), std::end(state->released), false);
+            std::copy(std::begin(state->mousePressed), std::end(state->mousePressed),
+                      std::begin(rtkEvent._mouseButtonPressed));
+            std::copy(std::begin(state->mouseReleased), std::end(state->mouseReleased),
+                      std::begin(rtkEvent._mouseButtonReleased));
+            std::fill(std::begin(state->mouseReleased), std::end(state->mouseReleased), false);
+            rtkEvent._mouseX = state->mouseX;
+            rtkEvent._mouseY = state->mouseY;
         }
         return _isOpen;
     }

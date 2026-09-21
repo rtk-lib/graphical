@@ -60,10 +60,22 @@ namespace rtk {
         F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15,
     };
 
+    enum class MouseButton : uint16_t {
+        Left = 0,
+        Right = 1,
+        Middle = 2,
+        ButtonCount = 3
+    };
+
     class Event {
     private:
         bool _keyPressed[RTK_KEYS_TAB_SIZE]{};
         bool _keyReleased[RTK_KEYS_TAB_SIZE]{};
+
+        bool _mouseButtonPressed[3]{};
+        bool _mouseButtonReleased[3]{};
+        int _mouseX{0};
+        int _mouseY{0};
 
         static constexpr std::size_t keyToIndex(Key key)
         {
@@ -96,5 +108,16 @@ namespace rtk {
 
             return translateKey(key);
         }
+
+        [[nodiscard]] bool isMouseButtonPressed(MouseButton button) const {
+            return _mouseButtonPressed[static_cast<std::size_t>(button)];
+        }
+
+        [[nodiscard]] bool isMouseButtonReleased(MouseButton button) const {
+            return _mouseButtonReleased[static_cast<std::size_t>(button)];
+        }
+
+        [[nodiscard]] int getMouseX() const { return _mouseX; }
+        [[nodiscard]] int getMouseY() const { return _mouseY; }
     };
 }
