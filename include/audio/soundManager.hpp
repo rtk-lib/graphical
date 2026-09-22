@@ -4,23 +4,24 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
+#include <list>
 
 #include "audio/sound.hpp"
 #include "stb/miniaudio.h"
 
+
 class SoundManager {
 private:
     struct SoundData {
-        ma_sound audio;
+        ma_sound templateAudio;
+        std::list<ma_sound> activeVoices;
         int generation = 0;
         std::string path;
         bool active = false;
-        bool dying = false;
     };
 
     ma_engine engine;
     std::unordered_map<std::string, int> pathToIndex;
-
     std::vector<std::unique_ptr<SoundData>> sounds;
 
 public:
