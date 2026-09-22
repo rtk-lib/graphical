@@ -12,6 +12,28 @@ endif()
 option(RTK_REGENERATE_SHADERS "Regenerate embedded SPIR-V shaders" ON)
 
 set(STB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/stb")
+set(MINI_AUDIO_HEADER "${STB_DIR}/miniaudio.h")
+
+if(NOT EXISTS "${MINI_AUDIO_HEADER}")
+    message(STATUS "Downloading miniaudio.h...")
+
+    file(MAKE_DIRECTORY "${STB_DIR}")
+
+    file(DOWNLOAD "https://raw.githubusercontent.com/mackron/miniaudio/master/miniaudio.h" "${MINI_AUDIO_HEADER}" STATUS MA_DOWNLOAD_STATUS)
+
+    list(GET MA_DOWNLOAD_STATUS 0 MA_DOWNLOAD_ERROR)
+
+    if(NOT MA_DOWNLOAD_ERROR EQUAL 0)
+        message(FATAL_ERROR "Failed to download miniaudio.h")
+    endif()
+endif()
+
+set(MINI_AUDIO_SOURCE "${STB_DIR}/miniaudio.cpp")
+if(NOT EXISTS "${MINI_AUDIO_SOURCE}")
+    file(WRITE "${MINI_AUDIO_SOURCE}" "#define MINIAUDIO_IMPLEMENTATION\n#include \"miniaudio.h\"\n")
+endif()
+
+set(STB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/stb")
 
 set(STB_IMAGE_HEADER "${STB_DIR}/stb_image.h")
 
@@ -211,6 +233,8 @@ install(EXPORT rtkGraphicalTargets FILE rtkGraphicalTargets.cmake NAMESPACE rtk:
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/rtk_graphicalConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/rtk_graphicalConfigVersion.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/rtk_graphical")
-add_executable(graphical_test test/manyTexture.cpp)
+add_executable(graphical_test test/soundTest.cpp)
+
 target_link_libraries(graphical_test PRIVATE rtk_graphical)
+
 target_include_directories(graphical_test PRIVATE src include)
