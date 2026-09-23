@@ -92,6 +92,7 @@ namespace rtk
         if (!_isOpen) return false;
         MSG msg = {};
         memset(rtkEvent._keyReleased, 0, RTK_KEYS_TAB_SIZE);
+        memset(rtkEvent._mouseButtonReleased, 0, 3);
 
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) {
@@ -108,6 +109,24 @@ namespace rtk
             } else if (msg.message == WM_KILLFOCUS) {
                 memset(rtkEvent._keyPressed, 0, RTK_KEYS_TAB_SIZE);
                 memset(rtkEvent._mouseButtonPressed, 0, 3);
+            } else if (msg.message == WM_MOUSEMOVE) {
+                rtkEvent._mouseX = (int)(short)LOWORD(msg.lParam);
+                rtkEvent._mouseY = (int)(short)HIWORD(msg.lParam);
+            } else if (msg.message == WM_LBUTTONDOWN) {
+                rtkEvent._mouseButtonPressed[0] = true;
+            } else if (msg.message == WM_LBUTTONUP) {
+                rtkEvent._mouseButtonPressed[0] = false;
+                rtkEvent._mouseButtonReleased[0] = true;
+            } else if (msg.message == WM_RBUTTONDOWN) {
+                rtkEvent._mouseButtonPressed[1] = true;
+            } else if (msg.message == WM_RBUTTONUP) {
+                rtkEvent._mouseButtonPressed[1] = false;
+                rtkEvent._mouseButtonReleased[1] = true;
+            } else if (msg.message == WM_MBUTTONDOWN) {
+                rtkEvent._mouseButtonPressed[2] = true;
+            } else if (msg.message == WM_MBUTTONUP) {
+                rtkEvent._mouseButtonPressed[2] = false;
+                rtkEvent._mouseButtonReleased[2] = true;
             }
             TranslateMessage(&msg);
             DispatchMessage(&msg);
