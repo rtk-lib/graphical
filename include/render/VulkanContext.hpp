@@ -128,6 +128,7 @@ namespace rtk
         VkExtent2D getSwapChainExtent() const { return _swapChainExtent; }
         VkCommandPool getCommandPool() const { return _commandPool; }
         VkExtent2D getLogicalExtent() const { return _logicalExtent; }
+        VkExtent2D getWindowExtent() const { return {_window.getWindowSizeWidth(), _window.getWindowSizeHeight()}; }
 
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
         VkCommandBuffer beginSingleTimeCommands() const;

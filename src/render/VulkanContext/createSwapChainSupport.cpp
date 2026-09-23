@@ -111,10 +111,19 @@ namespace rtk
 
     void VulkanContext::cleanupSwapChain()
     {
-        for (auto imageView : _swapChainImageViews)
-            vkDestroyImageView(_device, imageView, nullptr);
-        if (_swapChain)
+        for (VkImageView imageView : _swapChainImageViews) {
+            if (imageView != VK_NULL_HANDLE) {
+                vkDestroyImageView(_device, imageView, nullptr);
+            }
+        }
+
+        _swapChainImageViews.clear();
+        _swapChainImages.clear();
+
+        if (_swapChain != VK_NULL_HANDLE) {
             vkDestroySwapchainKHR(_device, _swapChain, nullptr);
+            _swapChain = VK_NULL_HANDLE;
+        }
     }
 
     void VulkanContext::recreateSwapChain()

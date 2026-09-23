@@ -36,7 +36,7 @@ namespace rtk {
 
        VkBuffer instanceBuffer = VK_NULL_HANDLE;
        VkDeviceMemory instanceMemory = VK_NULL_HANDLE;
-       void* mappedInstances = nullptr;
+       void *mappedInstances = nullptr;
 
        std::size_t instanceCount = 0;
        std::size_t instanceCapacity = 0;
@@ -169,7 +169,7 @@ namespace rtk {
 
         VkBuffer _instanceBuffer = VK_NULL_HANDLE;
         VkDeviceMemory _instanceBufferMemory = VK_NULL_HANDLE;
-        void* _mappedInstanceData = nullptr;
+        void *_mappedInstanceData = nullptr;
 
         static constexpr std::size_t MaxFramesInFlight = 3;
         static constexpr std::size_t SpritesPerPage = 16'384;

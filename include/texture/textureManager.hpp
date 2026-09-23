@@ -33,6 +33,11 @@ namespace rtk {
         TextureManager(const TextureManager&) = delete;
         TextureManager& operator=(const TextureManager&) = delete;
 
+        /**
+         * @brief Loads a texture from the given file path.
+         * @warning This function updates descriptor sets. It must be called BEFORE `beginFrame()` 
+         *          or AFTER the GPU is completely idle to prevent updating resources currently in use by a command buffer.
+         */
         rtk::Texture loadTexture(const std::string& filepath);
         Texture loadTextureFromMemory(std::span<const std::uint8_t> pixels, uint32_t width, uint32_t height);
         const TextureData& getTexture(uint32_t id) const;

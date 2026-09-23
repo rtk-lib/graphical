@@ -22,27 +22,41 @@ namespace rtk
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBuffer;
-        checkVkR(vkAllocateCommandBuffers(_device, &allocInfo, &commandBuffer));
+        if (vkAllocateCommandBuffers(_device, &allocInfo, &commandBuffer) != VK_SUCCESS)
+            throw std::runtime_error("Failed to allocate command buffer");
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-        checkVkR(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+            vkFreeCommandBuffers(_device, _commandPool, 1, &commandBuffer);
+            throw std::runtime_error("Failed to begin single time command buffer");
+        }
         return commandBuffer;
     }
 
     void VulkanContext::endSingleTimeCommands(VkCommandBuffer commandBuffer) const
     {
-        checkVkR(vkEndCommandBuffer(commandBuffer));
+        try {
+            if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+                throw std::runtime_error("Failed to end command buffer");
 
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
+            VkSubmitInfo submitInfo{};
+            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submitInfo.commandBufferCount = 1;
+            submitInfo.pCommandBuffers = &commandBuffer;
 
-        checkVkR(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
-        checkVkR(vkQueueWaitIdle(_graphicsQueue));
+            if (vkQueueSubmit(_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+                throw std::runtime_error("Failed to submit queue");
+            
+            if (vkQueueWaitIdle(_graphicsQueue) != VK_SUCCESS)
+                throw std::runtime_error("Failed to wait idle");
+        } catch (...) {
+            vkFreeCommandBuffers(_device, _commandPool, 1, &commandBuffer);
+            throw;
+        }
+
         vkFreeCommandBuffers(_device, _commandPool, 1, &commandBuffer);
     }
 }

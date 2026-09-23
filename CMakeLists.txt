@@ -56,6 +56,37 @@ if(NOT EXISTS "${STB_IMAGE_SOURCE}")
     file(WRITE "${STB_IMAGE_SOURCE}" "#define STB_IMAGE_IMPLEMENTATION\n#include \"stb_image.h\"\n")
 endif()
 
+set(STB_TRUETYPE_HEADER "${STB_DIR}/stb_truetype.h")
+
+if(NOT EXISTS "${STB_TRUETYPE_HEADER}")
+    message(STATUS "Downloading stb_truetype.h...")
+
+    file(MAKE_DIRECTORY "${STB_DIR}")
+
+    file(
+        DOWNLOAD
+        "https://raw.githubusercontent.com/nothings/stb/master/stb_truetype.h"
+        "${STB_TRUETYPE_HEADER}"
+        STATUS STB_TRUETYPE_DOWNLOAD_STATUS
+    )
+
+    list(GET STB_TRUETYPE_DOWNLOAD_STATUS 0 STB_TRUETYPE_DOWNLOAD_ERROR)
+
+    if(NOT STB_TRUETYPE_DOWNLOAD_ERROR EQUAL 0)
+        message(FATAL_ERROR "Failed to download stb_truetype.h")
+    endif()
+endif()
+
+set(STB_TRUETYPE_SOURCE "${STB_DIR}/stb_truetype.cpp")
+
+if(NOT EXISTS "${STB_TRUETYPE_SOURCE}")
+    file(
+        WRITE
+        "${STB_TRUETYPE_SOURCE}"
+        "#define STB_TRUETYPE_IMPLEMENTATION\n#include \"stb_truetype.h\"\n"
+    )
+endif()
+
 # --------------------------------------------------------------------
 # Sources
 # --------------------------------------------------------------------
@@ -233,7 +264,7 @@ install(EXPORT rtkGraphicalTargets FILE rtkGraphicalTargets.cmake NAMESPACE rtk:
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/rtk_graphicalConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/rtk_graphicalConfigVersion.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/rtk_graphical")
-add_executable(graphical_test test/soundTest.cpp)
+add_executable(graphical_test test/manyTexture.cpp)
 
 target_link_libraries(graphical_test PRIVATE rtk_graphical)
 

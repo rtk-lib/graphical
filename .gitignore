@@ -9,4 +9,6 @@ CMakeCache.txt
 .png
 *.so
 
+*spv.hpp
+
 cmake_install.cmake
