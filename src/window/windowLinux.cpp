@@ -11,7 +11,8 @@
 
 namespace rtk
 {
-    Window::Window(uint32_t width, uint32_t height, const char* title) : _isOpen(true), _width(width), _height(height)
+    Window::Window(uint32_t width, uint32_t height, const char* title) 
+        : _display(nullptr), _windowHandle(0), _vkInstance(nullptr), _surface(0), _isOpen(true), _width(width), _height(height)
     {
         Display* dpy = XOpenDisplay(NULL);
         if (!dpy) {
