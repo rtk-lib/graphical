@@ -127,7 +127,7 @@ namespace rtk
         VkFormat getSwapChainImageFormat() const { return _swapChainImageFormat; }
         VkExtent2D getSwapChainExtent() const { return _swapChainExtent; }
         VkCommandPool getCommandPool() const { return _commandPool; }
-        VkExtent2D getLogicalExtent() const { return {_width, _height}; }
+        VkExtent2D getLogicalExtent() const { return {_window.getWindowSizeWidth(), _window.getWindowSizeHeight()}; }
 
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
         VkCommandBuffer beginSingleTimeCommands() const;
@@ -188,8 +188,7 @@ namespace rtk
             #endif
         };
 
-        const uint32_t _width;
-        const uint32_t _height;
+
 
 #ifdef NDEBUG
         bool _enableValidationLayers = false;

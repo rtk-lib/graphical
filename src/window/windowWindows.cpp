@@ -25,6 +25,11 @@ namespace rtk
                     PostQuitMessage(0);
                 }
                 return 0;
+            case WM_SIZE:
+                if (win) {
+                    win->setWindowSize(LOWORD(lParam), HIWORD(lParam));
+                }
+                return 0;
             case WM_DESTROY:
                 PostQuitMessage(0);
                 return 0;

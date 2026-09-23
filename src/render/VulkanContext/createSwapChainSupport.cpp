@@ -30,7 +30,7 @@ namespace rtk
         if (capabilities.currentExtent.width != UINT32_MAX)
             return capabilities.currentExtent;
         else {
-            VkExtent2D actualExtent = {_width, _height};
+            VkExtent2D actualExtent = {_window.getWindowSizeWidth(), _window.getWindowSizeHeight()};
             actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
             actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
             return actualExtent;

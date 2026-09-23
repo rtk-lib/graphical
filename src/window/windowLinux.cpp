@@ -76,6 +76,11 @@ namespace rtk
                     break;
                 }
 
+                case ConfigureNotify: {
+                    setWindowSize(xEvent.xconfigure.width, xEvent.xconfigure.height);
+                    break;
+                }
+
                 case ClientMessage:
                     if (static_cast<Atom>(xEvent.xclient.data.l[0]) ==
                         XInternAtom(dpy, "WM_DELETE_WINDOW", False)) {

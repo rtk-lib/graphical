@@ -210,6 +210,9 @@ namespace rtk {
         if (!_display) return false;
         @autoreleasepool {
             RtkWindowDelegate* state = getState(_display);
+            NSView* view = state.ownedWindow.contentView;
+            NSRect pixels = [view convertRectToBacking:view.bounds];
+            setWindowSize(pixels.size.width, pixels.size.height);
             NSEvent* event = nil;
             while (_isOpen && (event = [NSApp nextEventMatchingMask:NSEventMaskAny
                     untilDate:[NSDate distantPast]

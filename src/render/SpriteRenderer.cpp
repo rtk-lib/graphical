@@ -522,6 +522,9 @@ namespace rtk {
 
     void SpriteRenderer::recreateSwapChain()
     {
+        VkExtent2D extent = _context.getLogicalExtent();
+        if (extent.width == 0 || extent.height == 0) return;
+
         VkDevice device = _context.getDevice();
 
         vkDeviceWaitIdle(device);
