@@ -11,6 +11,7 @@
 #include <vulkan/vulkan.h>
 
 #include <stdexcept>
+#include <span>
 
 
 #define MISSING_TEXTURE_IDX 0

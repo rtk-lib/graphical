@@ -9,6 +9,7 @@ class FontManager;
 
 class Font {
 public:
+    Font() = default;
     [[nodiscard]]
     constexpr uint32_t getIndex() const noexcept
     {

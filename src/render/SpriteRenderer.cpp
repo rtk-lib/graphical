@@ -358,6 +358,9 @@ namespace rtk {
         if (vkWaitForFences(device, 1, &frame.inFlightFence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
             throw std::runtime_error("Failed to wait for frame fence");
 
+        VkExtent2D extent = _context.getWindowExtent();
+        if (extent.width == 0 || extent.height == 0) return false;
+
         VkResult result = vkAcquireNextImageKHR(device, _context.getSwapChain(), UINT64_MAX, frame.imageAvailable, VK_NULL_HANDLE, &_imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -369,8 +372,7 @@ namespace rtk {
             throw std::runtime_error("Failed to acquire swapchain image");
         }
 
-        if (vkResetFences(device, 1, &frame.inFlightFence) != VK_SUCCESS)
-            throw std::runtime_error("Failed to reset frame fence");
+        _suboptimal = (result == VK_SUBOPTIMAL_KHR);
 
         if (vkResetCommandBuffer(frame.commandBuffer, 0) != VK_SUCCESS)
             throw std::runtime_error("Failed to reset command buffer");
@@ -491,6 +493,10 @@ namespace rtk {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
+        VkDevice device = _context.getDevice();
+        if (vkResetFences(device, 1, &frame.inFlightFence) != VK_SUCCESS)
+            throw std::runtime_error("Failed to reset frame fence");
+
         if (vkQueueSubmit(_context.getGraphicsQueue(), 1, &submitInfo, frame.inFlightFence) != VK_SUCCESS)
             throw std::runtime_error("Failed to submit frame");
 
@@ -507,9 +513,9 @@ namespace rtk {
         const VkResult result = vkQueuePresentKHR(_context.getPresentQueue(), &presentInfo);
 
         const bool mustRecreate =
-            result == VK_ERROR_OUT_OF_DATE_KHR;
+            result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || _suboptimal;
 
-        if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && !mustRecreate)
+        if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR)
             throw std::runtime_error("Failed to present swapchain image");
 
         _isFrameStarted = false;

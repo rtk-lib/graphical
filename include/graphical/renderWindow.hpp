@@ -6,6 +6,7 @@
 #include "utils/vec2.hpp"
 #include "font/fontManager.hpp"
 #include "text/text.hpp"
+#include <span>
 
 namespace rtk {
     class RenderWindow

@@ -164,6 +164,7 @@ namespace rtk {
 
         uint32_t _imageIndex = 0;
         bool _isFrameStarted = false;
+        bool _suboptimal = false;
 
         std::vector<rtk::SpriteData> _instances;
 

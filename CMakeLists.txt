@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(rtk_graphical VERSION 1.0.0 LANGUAGES CXX)
+project(rtk_graphical VERSION 1.2.1 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)

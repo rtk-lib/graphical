@@ -97,14 +97,30 @@ namespace rtk
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) {
                 _isOpen = false;
-            } else if (msg.message == WM_KEYDOWN) {
-                if (msg.wParam < RTK_KEYS_TAB_SIZE) {
-                    rtkEvent._keyPressed[msg.wParam] = true;
+            } else if (msg.message == WM_KEYDOWN || msg.message == WM_SYSKEYDOWN) {
+                WPARAM key = msg.wParam;
+                if (key == VK_SHIFT) {
+                    key = MapVirtualKey((msg.lParam & 0x00FF0000) >> 16, MAPVK_VSC_TO_VK_EX);
+                } else if (key == VK_CONTROL) {
+                    key = (msg.lParam & 0x01000000) ? VK_RCONTROL : VK_LCONTROL;
+                } else if (key == VK_MENU) {
+                    key = (msg.lParam & 0x01000000) ? VK_RMENU : VK_LMENU;
                 }
-            } else if (msg.message == WM_KEYUP) {
-                if (msg.wParam < RTK_KEYS_TAB_SIZE) {
-                    rtkEvent._keyPressed[msg.wParam] = false;
-                    rtkEvent._keyReleased[msg.wParam] = true;
+                if (key < RTK_KEYS_TAB_SIZE) {
+                    rtkEvent._keyPressed[key] = true;
+                }
+            } else if (msg.message == WM_KEYUP || msg.message == WM_SYSKEYUP) {
+                WPARAM key = msg.wParam;
+                if (key == VK_SHIFT) {
+                    key = MapVirtualKey((msg.lParam & 0x00FF0000) >> 16, MAPVK_VSC_TO_VK_EX);
+                } else if (key == VK_CONTROL) {
+                    key = (msg.lParam & 0x01000000) ? VK_RCONTROL : VK_LCONTROL;
+                } else if (key == VK_MENU) {
+                    key = (msg.lParam & 0x01000000) ? VK_RMENU : VK_LMENU;
+                }
+                if (key < RTK_KEYS_TAB_SIZE) {
+                    rtkEvent._keyPressed[key] = false;
+                    rtkEvent._keyReleased[key] = true;
                 }
             } else if (msg.message == WM_KILLFOCUS) {
                 memset(rtkEvent._keyPressed, 0, RTK_KEYS_TAB_SIZE);
