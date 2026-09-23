@@ -82,7 +82,7 @@ namespace rtk {
             return static_cast<std::size_t>(key);
         }
 
-        bool translateKey(rtk::Key key) const;
+        std::size_t translateKey(rtk::Key key) const;
 
     public:
         friend class Window;
@@ -90,23 +90,27 @@ namespace rtk {
         [[nodiscard]]
         bool isKeyPressed(rtk::Key key) const
         {
-            const std::size_t index = keyToIndex(key);
-
-            if (key == Key::Unknown || index >= RTK_KEYS_TAB_SIZE)
+            if (key == Key::Unknown)
                 return false;
 
-            return translateKey(key);
+            std::size_t index = translateKey(key);
+            if (index >= RTK_KEYS_TAB_SIZE)
+                return false;
+
+            return _keyPressed[index];
         }
 
         [[nodiscard]]
         bool isKeyReleased(rtk::Key key) const
         {
-            const std::size_t index = keyToIndex(key);
-
-            if (key == Key::Unknown || index >= RTK_KEYS_TAB_SIZE)
+            if (key == Key::Unknown)
                 return false;
 
-            return translateKey(key);
+            std::size_t index = translateKey(key);
+            if (index >= RTK_KEYS_TAB_SIZE)
+                return false;
+
+            return _keyReleased[index];
         }
 
         [[nodiscard]] bool isMouseButtonPressed(MouseButton button) const {
