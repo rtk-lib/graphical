@@ -99,6 +99,9 @@ namespace rtk
                     rtkEvent._keyPressed[msg.wParam] = false;
                     rtkEvent._keyReleased[msg.wParam] = true;
                 }
+            } else if (msg.message == WM_KILLFOCUS) {
+                memset(rtkEvent._keyPressed, 0, RTK_KEYS_TAB_SIZE);
+                memset(rtkEvent._mouseButtonPressed, 0, 3);
             }
             TranslateMessage(&msg);
             DispatchMessage(&msg);

@@ -29,7 +29,7 @@ namespace rtk
         ::Window win = XCreateSimpleWindow(dpy, root, 0, 0, width, height, 1, BlackPixel(dpy, screen), BlackPixel(dpy, screen));
         XStoreName(dpy, win, title);
 
-        XSelectInput(dpy, win, ExposureMask | KeyPressMask | KeyReleaseMask | StructureNotifyMask | PointerMotionMask | ButtonPressMask | ButtonReleaseMask);
+        XSelectInput(dpy, win, ExposureMask | KeyPressMask | KeyReleaseMask | StructureNotifyMask | PointerMotionMask | ButtonPressMask | ButtonReleaseMask | FocusChangeMask);
         XMapWindow(dpy, win);
 
         Atom wmDeleteMessage = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
@@ -69,6 +69,12 @@ namespace rtk
             XNextEvent(dpy, &xEvent);
 
             switch (xEvent.type) {
+                case FocusOut: {
+                    memset(rtkEvent._keyPressed, 0, RTK_KEYS_TAB_SIZE);
+                    memset(rtkEvent._mouseButtonPressed, 0, 3);
+                    break;
+                }
+
                 case ClientMessage:
                     if (static_cast<Atom>(xEvent.xclient.data.l[0]) ==
                         XInternAtom(dpy, "WM_DELETE_WINDOW", False)) {
