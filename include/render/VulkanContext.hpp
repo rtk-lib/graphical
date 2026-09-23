@@ -127,7 +127,7 @@ namespace rtk
         VkFormat getSwapChainImageFormat() const { return _swapChainImageFormat; }
         VkExtent2D getSwapChainExtent() const { return _swapChainExtent; }
         VkCommandPool getCommandPool() const { return _commandPool; }
-        VkExtent2D getLogicalExtent() const { return {_window.getWindowSizeWidth(), _window.getWindowSizeHeight()}; }
+        VkExtent2D getLogicalExtent() const { return _logicalExtent; }
 
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
         VkCommandBuffer beginSingleTimeCommands() const;
@@ -157,6 +157,7 @@ namespace rtk
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
         Window& _window;
+        VkExtent2D _logicalExtent;
 
         VkInstance _instance = VK_NULL_HANDLE;
         VkSurfaceKHR _surface = VK_NULL_HANDLE;

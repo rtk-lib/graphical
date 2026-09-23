@@ -2,7 +2,7 @@
 
 namespace rtk
 {
-    VulkanContext::VulkanContext(Window& window) : _window(window)
+    VulkanContext::VulkanContext(Window& window) : _window(window), _logicalExtent({window.getWindowSizeWidth(), window.getWindowSizeHeight()})
     {
         createInstance();
         createSurface();
