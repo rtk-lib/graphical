@@ -34,6 +34,7 @@ namespace rtk {
         TextureManager& operator=(const TextureManager&) = delete;
 
         rtk::Texture loadTexture(const std::string& filepath);
+        Texture loadTextureFromMemory(std::span<const std::uint8_t> pixels, uint32_t width, uint32_t height);
         const TextureData& getTexture(uint32_t id) const;
 
         VkDescriptorSetLayout getDescriptorSetLayout() const { return _descriptorSetLayout; }

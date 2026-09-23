@@ -1,10 +1,11 @@
+#pragma once
+
 #include "render/SpriteRenderer.hpp"
-
 #include "sprite/sprite.hpp"
-
 #include <glm/gtc/matrix_transform.hpp>
-
 #include "utils/vec2.hpp"
+#include "font/fontManager.hpp"
+#include "text/text.hpp"
 
 namespace rtk {
     class RenderWindow
@@ -13,6 +14,7 @@ namespace rtk {
             Window _window;
             VulkanContext _context;
             TextureManager _textures;
+            FontManager _fonts;
             SpriteRenderer _renderer;
 
         public:
@@ -26,12 +28,13 @@ namespace rtk {
             RenderWindow& operator=(RenderWindow&&) = delete;
 
             /**
-             * @brief init window, context, the textureManager and the renderer
+             * @brief init window, context, the textureManager, fontManager and the renderer
             */
             RenderWindow(rtk::vec2 windowSize, const char *windowName) :
                 _window(windowSize.x, windowSize.y, windowName), 
                 _context(_window),
                 _textures(_context),
+                _fonts(_textures),
                 _renderer(_context, _textures)
             {}
 
@@ -68,6 +71,26 @@ namespace rtk {
                 return _textures.loadTexture(textureFile);
             }
 
+            /**************\
+            * Font Manager *
+            \**************/
+
+            [[nodiscard]]
+            rtk::Font loadFont(const std::string& fontFile, float pixelSize)
+            {
+                return _fonts.loadFont(fontFile, pixelSize);
+            }
+
+            [[nodiscard]]
+            rtk::Text createText(const std::string& content, rtk::Font font, const rtk::vec2& position = {}, const rtk::ColorRGBA8& color = {255, 255, 255, 255}) const
+            {
+                return _fonts.createText(content, font, position, color);
+            }
+
+            FontManager& getFontManager() { return _fonts; }
+            const FontManager& getFontManager() const { return _fonts; }
+
+
             /***************\
             * Sprite Render *
             \***************/
@@ -91,6 +114,11 @@ namespace rtk {
             void draw(std::span<const SpriteData> sprites)
             {
                 _renderer.submit(sprites);
+            }
+            
+            void draw(const rtk::Text& text)
+            {
+                _renderer.submit(text.getSprites());
             }
 
             void endFrame()
