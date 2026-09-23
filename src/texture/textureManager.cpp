@@ -380,6 +380,14 @@ namespace rtk {
         } else {
             int texChannels;
             pixels = stbi_load(filepath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+
+            if (!pixels)
+                throw std::runtime_error("Failed to load texture image: " + filepath);
+            if (texWidth <= 0 || texHeight <= 0) {
+                stbi_image_free(pixels);
+                throw std::runtime_error("Invalid texture dimensions: " + filepath);
+            }
+
             imageSize = texWidth * texHeight * 4;
         }
 
