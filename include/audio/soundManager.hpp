@@ -7,7 +7,7 @@
 #include <list>
 
 #include "audio/sound.hpp"
-#include "stb/miniaudio.h"
+#include <miniaudio.h>
 
 
 class SoundManager {

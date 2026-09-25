@@ -11,86 +11,6 @@ endif()
 
 option(RTK_REGENERATE_SHADERS "Regenerate embedded SPIR-V shaders" ON)
 
-set(STB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/stb")
-set(MINI_AUDIO_HEADER "${STB_DIR}/miniaudio.h")
-
-if(NOT EXISTS "${MINI_AUDIO_HEADER}")
-    message(STATUS "Downloading miniaudio.h...")
-
-    file(MAKE_DIRECTORY "${STB_DIR}")
-
-    file(DOWNLOAD "https://raw.githubusercontent.com/mackron/miniaudio/master/miniaudio.h" "${MINI_AUDIO_HEADER}" STATUS MA_DOWNLOAD_STATUS)
-
-    list(GET MA_DOWNLOAD_STATUS 0 MA_DOWNLOAD_ERROR)
-
-    if(NOT MA_DOWNLOAD_ERROR EQUAL 0)
-        message(FATAL_ERROR "Failed to download miniaudio.h")
-    endif()
-endif()
-
-set(MINI_AUDIO_SOURCE "${STB_DIR}/miniaudio.cpp")
-if(NOT EXISTS "${MINI_AUDIO_SOURCE}")
-    file(WRITE "${MINI_AUDIO_SOURCE}" "#define MINIAUDIO_IMPLEMENTATION\n#include \"miniaudio.h\"\n")
-endif()
-
-set(STB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/stb")
-
-set(STB_IMAGE_HEADER "${STB_DIR}/stb_image.h")
-
-if(NOT EXISTS "${STB_IMAGE_HEADER}")
-    message(STATUS "Downloading stb_image.h...")
-
-    file(MAKE_DIRECTORY "${STB_DIR}")
-
-    file(DOWNLOAD "https://raw.githubusercontent.com/nothings/stb/master/stb_image.h" "${STB_IMAGE_HEADER}" STATUS STB_DOWNLOAD_STATUS)
-
-    list(GET STB_DOWNLOAD_STATUS 0 STB_DOWNLOAD_ERROR)
-
-if(NOT STB_DOWNLOAD_ERROR EQUAL 0)
-        message(FATAL_ERROR "Failed to download stb_image.h")
-    endif()
-endif()
-
-set(STB_IMAGE_SOURCE "${STB_DIR}/stb_image.cpp")
-if(NOT EXISTS "${STB_IMAGE_SOURCE}")
-    file(WRITE "${STB_IMAGE_SOURCE}" "#define STB_IMAGE_IMPLEMENTATION\n#include \"stb_image.h\"\n")
-endif()
-
-set(STB_TRUETYPE_HEADER "${STB_DIR}/stb_truetype.h")
-
-if(NOT EXISTS "${STB_TRUETYPE_HEADER}")
-    message(STATUS "Downloading stb_truetype.h...")
-
-    file(MAKE_DIRECTORY "${STB_DIR}")
-
-    file(
-        DOWNLOAD
-        "https://raw.githubusercontent.com/nothings/stb/master/stb_truetype.h"
-        "${STB_TRUETYPE_HEADER}"
-        STATUS STB_TRUETYPE_DOWNLOAD_STATUS
-    )
-
-    list(GET STB_TRUETYPE_DOWNLOAD_STATUS 0 STB_TRUETYPE_DOWNLOAD_ERROR)
-
-    if(NOT STB_TRUETYPE_DOWNLOAD_ERROR EQUAL 0)
-        message(FATAL_ERROR "Failed to download stb_truetype.h")
-    endif()
-endif()
-
-set(STB_TRUETYPE_SOURCE "${STB_DIR}/stb_truetype.cpp")
-
-if(NOT EXISTS "${STB_TRUETYPE_SOURCE}")
-    file(
-        WRITE
-        "${STB_TRUETYPE_SOURCE}"
-        "#define STB_TRUETYPE_IMPLEMENTATION\n#include \"stb_truetype.h\"\n"
-    )
-endif()
-
-# --------------------------------------------------------------------
-# Sources
-# --------------------------------------------------------------------
-
 file(GLOB_RECURSE RTK_GRAPHICAL_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
 list(REMOVE_ITEM RTK_GRAPHICAL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowLinux.cpp"
@@ -116,8 +36,11 @@ set_target_properties(rtk_graphical PROPERTIES OUTPUT_NAME rtk_graphical VERSION
 target_compile_features(rtk_graphical PUBLIC cxx_std_20)
 
 target_include_directories(
-    rtk_graphical PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${STB_DIR}")
+    rtk_graphical PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(rtk_graphical PRIVATE $<$<CONFIG:Debug>:-Wall> $<$<CONFIG:Debug>:-Wextra> $<$<CONFIG:Release>:-O3>)
@@ -125,6 +48,14 @@ endif()
 
 find_package(Vulkan REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(Stb REQUIRED)
+find_path(MINIAUDIO_INCLUDE_DIR NAMES miniaudio.h REQUIRED)
+
+target_include_directories(
+    rtk_graphical PRIVATE
+    "${Stb_INCLUDE_DIR}"
+    "${MINIAUDIO_INCLUDE_DIR}"
+)
 
 target_link_libraries(rtk_graphical PUBLIC Vulkan::Vulkan glm::glm)
 

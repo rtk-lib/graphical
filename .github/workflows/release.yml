@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - "v*"
-
   release:
     types: [published]
   workflow_dispatch:
@@ -30,7 +29,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      - name: Checkout vcpkg
+        uses: actions/checkout@v6
+        with:
+          repository: microsoft/vcpkg
+          path: vcpkg
 
       - name: Install System Dependencies (Linux)
         if: runner.os == 'Linux'
@@ -38,57 +43,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libx11-dev libxext-dev xorg-dev
 
-      - name: Install Vulkan (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get install -y libvulkan-dev libglm-dev
+      - name: use vcpkg (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
-      - name: Install Vulkan (macOS)
-        if: runner.os == 'macOS'
-        run: brew install vulkan-headers vulkan-loader glm
-
-      - name: Install Vulkan (Windows)
+      - name: Bootstrap vcpkg (Windows)
         if: runner.os == 'Windows'
-        run: |
-          choco install vulkan-sdk --no-progress -y
-
-          $vcpkgExe = "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe"
-          $glmInstalled = $false
-
-          for ($attempt = 1; $attempt -le 4; $attempt++) {
-            Write-Host "Installing GLM (attempt $attempt/4)..."
-
-            $process = Start-Process `
-              -FilePath $vcpkgExe `
-              -ArgumentList "install", "glm:x64-windows" `
-              -Wait `
-              -NoNewWindow `
-              -PassThru
-
-            if ($process.ExitCode -eq 0) {
-              $glmInstalled = $true
-              break
-            }
-
-            if ($attempt -lt 4) {
-              Start-Sleep -Seconds (15 * $attempt)
-            }
-          }
-
-          if (-not $glmInstalled) {
-            throw "Unable to install GLM after 4 attempts"
-          }
-
-          "CMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" >> $env:GITHUB_ENV
-
-          $vulkanSdk = Get-ChildItem "C:\VulkanSDK" -Directory |
-            Sort-Object Name -Descending |
-            Select-Object -First 1
-
-          "VULKAN_SDK=$($vulkanSdk.FullName)" >> $env:GITHUB_ENV
-          "$($vulkanSdk.FullName)\Bin" >> $env:GITHUB_PATH
+        run: .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
 
       - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DRTK_REGENERATE_SHADERS=OFF
+        run: >-
+          cmake -S . -B build
+          -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          -DCMAKE_BUILD_TYPE=Release
+          -DRTK_REGENERATE_SHADERS=OFF
 
       - name: Build
         run: cmake --build build --config Release
