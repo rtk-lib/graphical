@@ -1,4 +1,5 @@
 #include "render/SpriteRenderer.hpp"
+#include <algorithm>
 #include <fstream>
 #include <stdexcept>
 #include <iostream>
@@ -261,12 +262,12 @@ namespace rtk {
 
             if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_graphicsPipeline) != VK_SUCCESS)
                 throw std::runtime_error("Failed to create graphics pipeline");
-        } catch (...) {
+        } catch (const std::exception& e) {
             if (fragShaderModule != VK_NULL_HANDLE)
                 vkDestroyShaderModule(device, fragShaderModule, nullptr);
             if (vertShaderModule != VK_NULL_HANDLE)
                 vkDestroyShaderModule(device, vertShaderModule, nullptr);
-            throw;
+            throw std::runtime_error(std::string("Graphics Pipeline failed:") + e.what());;
         }
 
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
@@ -352,6 +353,7 @@ namespace rtk {
         FrameResources& frame = _frames[_currentFrame];
         frame.instanceCount = 0;
         frame.uploadedBytes = 0;
+        _instances.clear();
         VkDevice device = _context.getDevice();
         VkCommandBuffer commandBuffer = frame.commandBuffer;
 
@@ -421,10 +423,19 @@ namespace rtk {
 
     void SpriteRenderer::flush()
     {
+        if (_instances.empty())
+            return;
+
         FrameResources& frame = _frames[_currentFrame];
 
-        if (frame.instanceCount == 0)
-            return;
+        std::stable_sort(_instances.begin(), _instances.end(), [](const SpriteData& a, const SpriteData& b) {
+            return a.layer < b.layer;
+        });
+
+        frame.instanceCount = _instances.size();
+        ensureInstanceCapacity(frame, frame.instanceCount);
+        std::memcpy(frame.mappedInstances, _instances.data(), _instances.size() * sizeof(SpriteData));
+        frame.uploadedBytes = frame.instanceCount * sizeof(SpriteData);
 
         VkCommandBuffer commandBuffer = frame.commandBuffer;
 
@@ -661,20 +672,7 @@ namespace rtk {
         if (sprites.empty())
             return;
 
-        FrameResources& frame = _frames[_currentFrame];
-        if (sprites.size() > std::numeric_limits<uint32_t>::max() - frame.instanceCount)
-            throw std::runtime_error("Too many instances for one draw call");
-
-        const std::size_t requiredCapacity = frame.instanceCount + sprites.size();
-
-        ensureInstanceCapacity(frame, requiredCapacity);
-
-        auto* destination = static_cast<SpriteData*>(frame.mappedInstances) + frame.instanceCount;
-
-        std::memcpy(destination, sprites.data(), sprites.size_bytes());
-
-        frame.instanceCount += sprites.size();
-        frame.uploadedBytes = frame.instanceCount * sizeof(SpriteData);
+        _instances.insert(_instances.end(), sprites.begin(), sprites.end());
     }
 
     void SpriteRenderer::ensureInstanceCapacity(FrameResources& frame, std::size_t requiredCapacity)
