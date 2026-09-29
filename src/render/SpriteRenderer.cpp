@@ -1,4 +1,5 @@
 #include "render/SpriteRenderer.hpp"
+#include <algorithm>
 #include <fstream>
 #include <stdexcept>
 #include <iostream>
@@ -16,12 +17,40 @@ namespace rtk {
     SpriteRenderer::SpriteRenderer(VulkanContext& context, const TextureManager& textureManager)
         : _context(context), _textureManager(textureManager)
     {
-        createRenderPass();
-        createGraphicsPipeline();
-        createFramebuffers();
-        createBuffers();
-        createCommandBuffers();
-        createSyncObjects();
+        try {
+            createRenderPass();
+            createGraphicsPipeline();
+            createFramebuffers();
+            createBuffers();
+            createCommandBuffers();
+            createSyncObjects();
+        } catch (...) {
+            VkDevice device = _context.getDevice();
+            vkDeviceWaitIdle(device);
+            if (_quadIndexBuffer) vkDestroyBuffer(device, _quadIndexBuffer, nullptr);
+            if (_quadIndexBufferMemory) vkFreeMemory(device, _quadIndexBufferMemory, nullptr);
+            if (_quadVertexBuffer) vkDestroyBuffer(device, _quadVertexBuffer, nullptr);
+            if (_quadVertexBufferMemory) vkFreeMemory(device, _quadVertexBufferMemory, nullptr);
+
+            for (FrameResources& frame : _frames) {
+                if (frame.mappedInstances != nullptr && frame.instanceMemory != VK_NULL_HANDLE) {
+                    vkUnmapMemory(device, frame.instanceMemory);
+                }
+                if (frame.instanceBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, frame.instanceBuffer, nullptr);
+                if (frame.instanceMemory != VK_NULL_HANDLE) vkFreeMemory(device, frame.instanceMemory, nullptr);
+                if (frame.imageAvailable != VK_NULL_HANDLE) vkDestroySemaphore(device, frame.imageAvailable, nullptr);
+                if (frame.inFlightFence != VK_NULL_HANDLE) vkDestroyFence(device, frame.inFlightFence, nullptr);
+            }
+
+            destroyRenderFinishedSemaphores();
+            if (_graphicsPipeline) vkDestroyPipeline(device, _graphicsPipeline, nullptr);
+            if (_pipelineLayout) vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
+            for (VkFramebuffer framebuffer : _swapChainFramebuffers) {
+                if (framebuffer) vkDestroyFramebuffer(device, framebuffer, nullptr);
+            }
+            if (_renderPass) vkDestroyRenderPass(device, _renderPass, nullptr);
+            throw;
+        }
     }
 
     SpriteRenderer::~SpriteRenderer()
@@ -110,125 +139,136 @@ namespace rtk {
     {
         VkDevice device = _context.getDevice();
 
-        VkShaderModule vertShaderModule = createShaderModule(rtk::shaders::sprite_vert_spv);
-        VkShaderModule fragShaderModule = createShaderModule(rtk::shaders::sprite_frag_spv);
+        VkShaderModule vertShaderModule = VK_NULL_HANDLE;
+        VkShaderModule fragShaderModule = VK_NULL_HANDLE;
 
-        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        vertShaderStageInfo.module = vertShaderModule;
-        vertShaderStageInfo.pName = "main";
+        try {
+            vertShaderModule = createShaderModule(rtk::shaders::sprite_vert_spv);
+            fragShaderModule = createShaderModule(rtk::shaders::sprite_frag_spv);
 
-        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        fragShaderStageInfo.module = fragShaderModule;
-        fragShaderStageInfo.pName = "main";
+            VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+            vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+            vertShaderStageInfo.module = vertShaderModule;
+            vertShaderStageInfo.pName = "main";
 
-        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+            VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+            fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+            fragShaderStageInfo.module = fragShaderModule;
+            fragShaderStageInfo.pName = "main";
 
-        auto vertexBinding = SpriteVertex::getBindingDescription();
-        auto instanceBinding = getSpriteBindingDescription();
-        std::vector<VkVertexInputBindingDescription> bindings = {vertexBinding, instanceBinding};
+            VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-        auto vertexAttributes = SpriteVertex::getAttributeDescriptions();
-        auto instanceAttributes = getSpriteAttributeDescriptions();
+            auto vertexBinding = SpriteVertex::getBindingDescription();
+            auto instanceBinding = getSpriteBindingDescription();
+            std::vector<VkVertexInputBindingDescription> bindings = {vertexBinding, instanceBinding};
 
-        std::vector<VkVertexInputAttributeDescription> attributes;
-        attributes.insert(attributes.end(), vertexAttributes.begin(), vertexAttributes.end());
-        attributes.insert(attributes.end(), instanceAttributes.begin(), instanceAttributes.end());
+            auto vertexAttributes = SpriteVertex::getAttributeDescriptions();
+            auto instanceAttributes = getSpriteAttributeDescriptions();
 
-        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindings.size());
-        vertexInputInfo.pVertexBindingDescriptions = bindings.data();
-        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size());
-        vertexInputInfo.pVertexAttributeDescriptions = attributes.data();
+            std::vector<VkVertexInputAttributeDescription> attributes;
+            attributes.insert(attributes.end(), vertexAttributes.begin(), vertexAttributes.end());
+            attributes.insert(attributes.end(), instanceAttributes.begin(), instanceAttributes.end());
 
-        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        inputAssembly.primitiveRestartEnable = VK_FALSE;
+            VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+            vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+            vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindings.size());
+            vertexInputInfo.pVertexBindingDescriptions = bindings.data();
+            vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size());
+            vertexInputInfo.pVertexAttributeDescriptions = attributes.data();
 
-        VkPipelineViewportStateCreateInfo viewportState{};
-        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportState.viewportCount = 1;
-        viewportState.scissorCount = 1;
+            VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+            inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+            inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-        VkPipelineRasterizationStateCreateInfo rasterizer{};
-        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasterizer.depthClampEnable = VK_FALSE;
-        rasterizer.rasterizerDiscardEnable = VK_FALSE;
-        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-        rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_NONE;
-        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-        rasterizer.depthBiasEnable = VK_FALSE;
+            VkPipelineViewportStateCreateInfo viewportState{};
+            viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+            viewportState.viewportCount = 1;
+            viewportState.scissorCount = 1;
 
-        VkPipelineMultisampleStateCreateInfo multisampling{};
-        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampling.sampleShadingEnable = VK_FALSE;
-        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+            VkPipelineRasterizationStateCreateInfo rasterizer{};
+            rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+            rasterizer.depthClampEnable = VK_FALSE;
+            rasterizer.rasterizerDiscardEnable = VK_FALSE;
+            rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+            rasterizer.lineWidth = 1.0f;
+            rasterizer.cullMode = VK_CULL_MODE_NONE;
+            rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+            rasterizer.depthBiasEnable = VK_FALSE;
 
-        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment.blendEnable = VK_TRUE;
-        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+            VkPipelineMultisampleStateCreateInfo multisampling{};
+            multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+            multisampling.sampleShadingEnable = VK_FALSE;
+            multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-        VkPipelineColorBlendStateCreateInfo colorBlending{};
-        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        colorBlending.logicOpEnable = VK_FALSE;
-        colorBlending.attachmentCount = 1;
-        colorBlending.pAttachments = &colorBlendAttachment;
+            VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+            colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            colorBlendAttachment.blendEnable = VK_TRUE;
+            colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+            colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-        std::vector<VkDynamicState> dynamicStates = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR
-        };
-        VkPipelineDynamicStateCreateInfo dynamicState{};
-        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-        dynamicState.pDynamicStates = dynamicStates.data();
+            VkPipelineColorBlendStateCreateInfo colorBlending{};
+            colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+            colorBlending.logicOpEnable = VK_FALSE;
+            colorBlending.attachmentCount = 1;
+            colorBlending.pAttachments = &colorBlendAttachment;
 
-        VkPushConstantRange pushConstant{};
-        pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        pushConstant.offset = 0;
-        pushConstant.size = sizeof(SpritePushConstants);
+            std::vector<VkDynamicState> dynamicStates = {
+                VK_DYNAMIC_STATE_VIEWPORT,
+                VK_DYNAMIC_STATE_SCISSOR
+            };
+            VkPipelineDynamicStateCreateInfo dynamicState{};
+            dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+            dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+            dynamicState.pDynamicStates = dynamicStates.data();
 
-        VkDescriptorSetLayout setLayout = _textureManager.getDescriptorSetLayout();
+            VkPushConstantRange pushConstant{};
+            pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+            pushConstant.offset = 0;
+            pushConstant.size = sizeof(SpritePushConstants);
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &setLayout;
-        pipelineLayoutInfo.pushConstantRangeCount = 1;
-        pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+            VkDescriptorSetLayout setLayout = _textureManager.getDescriptorSetLayout();
 
-        if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create pipeline layout");
+            VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+            pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+            pipelineLayoutInfo.setLayoutCount = 1;
+            pipelineLayoutInfo.pSetLayouts = &setLayout;
+            pipelineLayoutInfo.pushConstantRangeCount = 1;
+            pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
 
-        VkGraphicsPipelineCreateInfo pipelineInfo{};
-        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineInfo.stageCount = 2;
-        pipelineInfo.pStages = shaderStages;
-        pipelineInfo.pVertexInputState = &vertexInputInfo;
-        pipelineInfo.pInputAssemblyState = &inputAssembly;
-        pipelineInfo.pViewportState = &viewportState;
-        pipelineInfo.pRasterizationState = &rasterizer;
-        pipelineInfo.pMultisampleState = &multisampling;
-        pipelineInfo.pColorBlendState = &colorBlending;
-        pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = _pipelineLayout;
-        pipelineInfo.renderPass = _renderPass;
-        pipelineInfo.subpass = 0;
+            if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS)
+                throw std::runtime_error("Failed to create pipeline layout");
 
-        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_graphicsPipeline) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create graphics pipeline");
+            VkGraphicsPipelineCreateInfo pipelineInfo{};
+            pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+            pipelineInfo.stageCount = 2;
+            pipelineInfo.pStages = shaderStages;
+            pipelineInfo.pVertexInputState = &vertexInputInfo;
+            pipelineInfo.pInputAssemblyState = &inputAssembly;
+            pipelineInfo.pViewportState = &viewportState;
+            pipelineInfo.pRasterizationState = &rasterizer;
+            pipelineInfo.pMultisampleState = &multisampling;
+            pipelineInfo.pColorBlendState = &colorBlending;
+            pipelineInfo.pDynamicState = &dynamicState;
+            pipelineInfo.layout = _pipelineLayout;
+            pipelineInfo.renderPass = _renderPass;
+            pipelineInfo.subpass = 0;
+
+            if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_graphicsPipeline) != VK_SUCCESS)
+                throw std::runtime_error("Failed to create graphics pipeline");
+        } catch (const std::exception& e) {
+            if (fragShaderModule != VK_NULL_HANDLE)
+                vkDestroyShaderModule(device, fragShaderModule, nullptr);
+            if (vertShaderModule != VK_NULL_HANDLE)
+                vkDestroyShaderModule(device, vertShaderModule, nullptr);
+            throw std::runtime_error(std::string("Graphics Pipeline failed:") + e.what());;
+        }
 
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
         vkDestroyShaderModule(device, vertShaderModule, nullptr);
@@ -264,7 +304,7 @@ namespace rtk {
                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                      _quadVertexBuffer, _quadVertexBufferMemory);
 
-        void* vertexData;
+        void *vertexData;
         checkVkR(vkMapMemory(_context.getDevice(), _quadVertexBufferMemory, 0, vertexBufferSize, 0, &vertexData));
         memcpy(vertexData, QUAD_VERTICES.data(), vertexBufferSize);
         vkUnmapMemory(_context.getDevice(), _quadVertexBufferMemory);
@@ -274,7 +314,7 @@ namespace rtk {
                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                      _quadIndexBuffer, _quadIndexBufferMemory);
 
-        void* indexData;
+        void *indexData;
         checkVkR(vkMapMemory(_context.getDevice(), _quadIndexBufferMemory, 0, indexBufferSize, 0, &indexData));
         memcpy(indexData, QUAD_INDICES.data(), indexBufferSize);
         vkUnmapMemory(_context.getDevice(), _quadIndexBufferMemory);
@@ -313,11 +353,15 @@ namespace rtk {
         FrameResources& frame = _frames[_currentFrame];
         frame.instanceCount = 0;
         frame.uploadedBytes = 0;
+        _instances.clear();
         VkDevice device = _context.getDevice();
         VkCommandBuffer commandBuffer = frame.commandBuffer;
 
         if (vkWaitForFences(device, 1, &frame.inFlightFence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
             throw std::runtime_error("Failed to wait for frame fence");
+
+        VkExtent2D extent = _context.getWindowExtent();
+        if (extent.width == 0 || extent.height == 0) return false;
 
         VkResult result = vkAcquireNextImageKHR(device, _context.getSwapChain(), UINT64_MAX, frame.imageAvailable, VK_NULL_HANDLE, &_imageIndex);
 
@@ -330,8 +374,7 @@ namespace rtk {
             throw std::runtime_error("Failed to acquire swapchain image");
         }
 
-        if (vkResetFences(device, 1, &frame.inFlightFence) != VK_SUCCESS)
-            throw std::runtime_error("Failed to reset frame fence");
+        _suboptimal = (result == VK_SUBOPTIMAL_KHR);
 
         if (vkResetCommandBuffer(frame.commandBuffer, 0) != VK_SUCCESS)
             throw std::runtime_error("Failed to reset command buffer");
@@ -380,10 +423,19 @@ namespace rtk {
 
     void SpriteRenderer::flush()
     {
+        if (_instances.empty())
+            return;
+
         FrameResources& frame = _frames[_currentFrame];
 
-        if (frame.instanceCount == 0)
-            return;
+        std::stable_sort(_instances.begin(), _instances.end(), [](const SpriteData& a, const SpriteData& b) {
+            return a.layer < b.layer;
+        });
+
+        frame.instanceCount = _instances.size();
+        ensureInstanceCapacity(frame, frame.instanceCount);
+        std::memcpy(frame.mappedInstances, _instances.data(), _instances.size() * sizeof(SpriteData));
+        frame.uploadedBytes = frame.instanceCount * sizeof(SpriteData);
 
         VkCommandBuffer commandBuffer = frame.commandBuffer;
 
@@ -452,6 +504,10 @@ namespace rtk {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
+        VkDevice device = _context.getDevice();
+        if (vkResetFences(device, 1, &frame.inFlightFence) != VK_SUCCESS)
+            throw std::runtime_error("Failed to reset frame fence");
+
         if (vkQueueSubmit(_context.getGraphicsQueue(), 1, &submitInfo, frame.inFlightFence) != VK_SUCCESS)
             throw std::runtime_error("Failed to submit frame");
 
@@ -468,9 +524,9 @@ namespace rtk {
         const VkResult result = vkQueuePresentKHR(_context.getPresentQueue(), &presentInfo);
 
         const bool mustRecreate =
-            result == VK_ERROR_OUT_OF_DATE_KHR;
+            result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || _suboptimal;
 
-        if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && !mustRecreate)
+        if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR)
             throw std::runtime_error("Failed to present swapchain image");
 
         _isFrameStarted = false;
@@ -499,11 +555,19 @@ namespace rtk {
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = _context.findMemoryType(memRequirements.memoryTypeBits, properties);
 
-        if (vkAllocateMemory(_context.getDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+        if (vkAllocateMemory(_context.getDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+            vkDestroyBuffer(_context.getDevice(), buffer, nullptr);
+            buffer = VK_NULL_HANDLE;
             throw std::runtime_error("Failed to allocate buffer memory");
+        }
 
-        if (vkBindBufferMemory(_context.getDevice(), buffer, bufferMemory, 0) != VK_SUCCESS)
+        if (vkBindBufferMemory(_context.getDevice(), buffer, bufferMemory, 0) != VK_SUCCESS) {
+            vkFreeMemory(_context.getDevice(), bufferMemory, nullptr);
+            bufferMemory = VK_NULL_HANDLE;
+            vkDestroyBuffer(_context.getDevice(), buffer, nullptr);
+            buffer = VK_NULL_HANDLE;
             throw std::runtime_error("Failed to bind buffer memory");
+        }
     }
 
     VkShaderModule SpriteRenderer::createShaderModule(std::span<const std::uint32_t> code)
@@ -522,6 +586,9 @@ namespace rtk {
 
     void SpriteRenderer::recreateSwapChain()
     {
+        VkExtent2D extent = _context.getWindowExtent();
+        if (extent.width == 0 || extent.height == 0) return;
+
         VkDevice device = _context.getDevice();
 
         vkDeviceWaitIdle(device);
@@ -605,20 +672,7 @@ namespace rtk {
         if (sprites.empty())
             return;
 
-        FrameResources& frame = _frames[_currentFrame];
-        if (sprites.size() > std::numeric_limits<uint32_t>::max() - frame.instanceCount)
-            throw std::runtime_error("Too many instances for one draw call");
-
-        const std::size_t requiredCapacity = frame.instanceCount + sprites.size();
-
-        ensureInstanceCapacity(frame, requiredCapacity);
-
-        auto* destination = static_cast<SpriteData*>(frame.mappedInstances) + frame.instanceCount;
-
-        std::memcpy(destination, sprites.data(), sprites.size_bytes());
-
-        frame.instanceCount += sprites.size();
-        frame.uploadedBytes = frame.instanceCount * sizeof(SpriteData);
+        _instances.insert(_instances.end(), sprites.begin(), sprites.end());
     }
 
     void SpriteRenderer::ensureInstanceCapacity(FrameResources& frame, std::size_t requiredCapacity)

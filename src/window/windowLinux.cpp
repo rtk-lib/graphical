@@ -11,7 +11,8 @@
 
 namespace rtk
 {
-    Window::Window(uint32_t width, uint32_t height, const char* title) : _isOpen(true), _width(width), _height(height)
+    Window::Window(uint32_t width, uint32_t height, const char* title) 
+        : _display(nullptr), _windowHandle(0), _vkInstance(nullptr), _surface(0), _isOpen(true), _width(width), _height(height)
     {
         Display* dpy = XOpenDisplay(NULL);
         if (!dpy) {
@@ -29,7 +30,7 @@ namespace rtk
         ::Window win = XCreateSimpleWindow(dpy, root, 0, 0, width, height, 1, BlackPixel(dpy, screen), BlackPixel(dpy, screen));
         XStoreName(dpy, win, title);
 
-        XSelectInput(dpy, win, ExposureMask | KeyPressMask | KeyReleaseMask | StructureNotifyMask);
+        XSelectInput(dpy, win, ExposureMask | KeyPressMask | KeyReleaseMask | StructureNotifyMask | PointerMotionMask | ButtonPressMask | ButtonReleaseMask | FocusChangeMask);
         XMapWindow(dpy, win);
 
         Atom wmDeleteMessage = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
@@ -63,11 +64,23 @@ namespace rtk
         XEvent xEvent;
 
         memset(rtkEvent._keyReleased, 0, RTK_KEYS_TAB_SIZE);
+        memset(rtkEvent._mouseButtonReleased, 0, 3);
 
         while (XPending(dpy) > 0) {
             XNextEvent(dpy, &xEvent);
 
             switch (xEvent.type) {
+                case FocusOut: {
+                    memset(rtkEvent._keyPressed, 0, RTK_KEYS_TAB_SIZE);
+                    memset(rtkEvent._mouseButtonPressed, 0, 3);
+                    break;
+                }
+
+                case ConfigureNotify: {
+                    setWindowSize(xEvent.xconfigure.width, xEvent.xconfigure.height);
+                    break;
+                }
+
                 case ClientMessage:
                     if (static_cast<Atom>(xEvent.xclient.data.l[0]) ==
                         XInternAtom(dpy, "WM_DELETE_WINDOW", False)) {
@@ -96,6 +109,35 @@ namespace rtk
                         rtkEvent._keyReleased[keycode] = true;
                     }
 
+                    break;
+                }
+
+                case MotionNotify: {
+                    rtkEvent._mouseX = xEvent.xmotion.x;
+                    rtkEvent._mouseY = xEvent.xmotion.y;
+                    break;
+                }
+
+                case ButtonPress: {
+                    if (xEvent.xbutton.button == Button1) rtkEvent._mouseButtonPressed[0] = true;
+                    else if (xEvent.xbutton.button == Button3) rtkEvent._mouseButtonPressed[1] = true;
+                    else if (xEvent.xbutton.button == Button2) rtkEvent._mouseButtonPressed[2] = true;
+                    break;
+                }
+
+                case ButtonRelease: {
+                    if (xEvent.xbutton.button == Button1) {
+                        rtkEvent._mouseButtonPressed[0] = false;
+                        rtkEvent._mouseButtonReleased[0] = true;
+                    }
+                    else if (xEvent.xbutton.button == Button3) {
+                        rtkEvent._mouseButtonPressed[1] = false;
+                        rtkEvent._mouseButtonReleased[1] = true;
+                    }
+                    else if (xEvent.xbutton.button == Button2) {
+                        rtkEvent._mouseButtonPressed[2] = false;
+                        rtkEvent._mouseButtonReleased[2] = true;
+                    }
                     break;
                 }
             }

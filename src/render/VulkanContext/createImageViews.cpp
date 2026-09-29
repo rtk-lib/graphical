@@ -22,8 +22,13 @@ namespace rtk
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(_device, &createInfo, nullptr, &_swapChainImageViews[i]) != VK_SUCCESS)
+            if (vkCreateImageView(_device, &createInfo, nullptr, &_swapChainImageViews[i]) != VK_SUCCESS) {
+                for (size_t j = 0; j < i; j++) {
+                    vkDestroyImageView(_device, _swapChainImageViews[j], nullptr);
+                }
+                _swapChainImageViews.clear();
                 throw std::runtime_error("Failed to create image views!");
+            }
         }
     }
 }

@@ -22,7 +22,7 @@ namespace rtk
             /*If we find all the Families ask we break out of the loop*/
             if (indices.isComplete())
                 break;
-                i++;
+            i++;
         }
         return indices;
     }

@@ -1,9 +1,10 @@
-/*
- * Windows (Win32) Window implementation
- */
 #include "window/window.hpp"
 #include "Logger/Logger.hpp"
+#include <cstring>
 #include <windows.h>
+
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <vulkan/vulkan.h>
 
 namespace rtk 
 {
@@ -24,6 +25,11 @@ namespace rtk
                     PostQuitMessage(0);
                 }
                 return 0;
+            case WM_SIZE:
+                if (win) {
+                    win->setWindowSize(LOWORD(lParam), HIWORD(lParam));
+                }
+                return 0;
             case WM_DESTROY:
                 PostQuitMessage(0);
                 return 0;
@@ -31,7 +37,8 @@ namespace rtk
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    Window::Window(uint32_t width, uint32_t height, const char* title) : _isOpen(true), _width(width), _height(height)
+    Window::Window(uint32_t width, uint32_t height, const char* title) 
+        : _display(nullptr), _windowHandle(0), _vkInstance(nullptr), _surface(0), _isOpen(true), _width(width), _height(height)
     {
         HINSTANCE hInstance = GetModuleHandle(NULL);
         const char* CLASS_NAME = "rtk_window_class";
@@ -78,26 +85,92 @@ namespace rtk
         }
     }
 
-    void Window::display(RGB clearColor)
-    {
-    }
+    void Window::display(RGB clearColor) {}
 
-    uint64_t Window::getSurface() const
-    {
-        return _surface;
-    }
-
-    bool Window::pollEvents()
+    bool Window::pollEvents(rtk::Event& rtkEvent)
     {
         if (!_isOpen) return false;
         MSG msg = {};
+        memset(rtkEvent._keyReleased, 0, RTK_KEYS_TAB_SIZE);
+        memset(rtkEvent._mouseButtonReleased, 0, 3);
+
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) {
                 _isOpen = false;
+            } else if (msg.message == WM_KEYDOWN || msg.message == WM_SYSKEYDOWN) {
+                WPARAM key = msg.wParam;
+                if (key == VK_SHIFT) {
+                    key = MapVirtualKey((msg.lParam & 0x00FF0000) >> 16, MAPVK_VSC_TO_VK_EX);
+                } else if (key == VK_CONTROL) {
+                    key = (msg.lParam & 0x01000000) ? VK_RCONTROL : VK_LCONTROL;
+                } else if (key == VK_MENU) {
+                    key = (msg.lParam & 0x01000000) ? VK_RMENU : VK_LMENU;
+                }
+                if (key < RTK_KEYS_TAB_SIZE) {
+                    rtkEvent._keyPressed[key] = true;
+                }
+            } else if (msg.message == WM_KEYUP || msg.message == WM_SYSKEYUP) {
+                WPARAM key = msg.wParam;
+                if (key == VK_SHIFT) {
+                    key = MapVirtualKey((msg.lParam & 0x00FF0000) >> 16, MAPVK_VSC_TO_VK_EX);
+                } else if (key == VK_CONTROL) {
+                    key = (msg.lParam & 0x01000000) ? VK_RCONTROL : VK_LCONTROL;
+                } else if (key == VK_MENU) {
+                    key = (msg.lParam & 0x01000000) ? VK_RMENU : VK_LMENU;
+                }
+                if (key < RTK_KEYS_TAB_SIZE) {
+                    rtkEvent._keyPressed[key] = false;
+                    rtkEvent._keyReleased[key] = true;
+                }
+            } else if (msg.message == WM_KILLFOCUS) {
+                memset(rtkEvent._keyPressed, 0, RTK_KEYS_TAB_SIZE);
+                memset(rtkEvent._mouseButtonPressed, 0, 3);
+            } else if (msg.message == WM_MOUSEMOVE) {
+                rtkEvent._mouseX = (int)(short)LOWORD(msg.lParam);
+                rtkEvent._mouseY = (int)(short)HIWORD(msg.lParam);
+            } else if (msg.message == WM_LBUTTONDOWN) {
+                rtkEvent._mouseButtonPressed[0] = true;
+            } else if (msg.message == WM_LBUTTONUP) {
+                rtkEvent._mouseButtonPressed[0] = false;
+                rtkEvent._mouseButtonReleased[0] = true;
+            } else if (msg.message == WM_RBUTTONDOWN) {
+                rtkEvent._mouseButtonPressed[1] = true;
+            } else if (msg.message == WM_RBUTTONUP) {
+                rtkEvent._mouseButtonPressed[1] = false;
+                rtkEvent._mouseButtonReleased[1] = true;
+            } else if (msg.message == WM_MBUTTONDOWN) {
+                rtkEvent._mouseButtonPressed[2] = true;
+            } else if (msg.message == WM_MBUTTONUP) {
+                rtkEvent._mouseButtonPressed[2] = false;
+                rtkEvent._mouseButtonReleased[2] = true;
             }
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
         return _isOpen;
     }
+
+    std::vector<const char*> Window::getRequiredExtensions() const
+    {
+        return { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
+    }
+
+    void Window::createSurface(void *vkInstance)
+    {
+        _vkInstance = vkInstance;
+        VkWin32SurfaceCreateInfoKHR createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+        createInfo.hwnd = reinterpret_cast<HWND>(_windowHandle);
+        createInfo.hinstance = reinterpret_cast<HINSTANCE>(_display);
+
+        VkSurfaceKHR surface;
+        if (vkCreateWin32SurfaceKHR((VkInstance)vkInstance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
+            LOG_ERROR("Failed to create Win32 Vulkan surface");
+        } else {
+            _surface = surface;
+            LOG_INFO("Win32 Vulkan surface created");
+        }
+    }
+
+    VkSurfaceKHR Window::getSurface() const { return _surface; }
 }

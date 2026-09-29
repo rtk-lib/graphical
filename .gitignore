@@ -1,11 +1,15 @@
 build
 graphical_test
 *.spv
-stb_*
 CMakeFiles
 Cmake_install.cmake
 CMakeCache.txt
 
 .png
+*.so
+
+*spv.hpp
 
 cmake_install.cmake
+
+vcpkg_installed/

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sprite/spriteData.hpp"
+#include "texture/texture.hpp"
 
 namespace rtk {
 

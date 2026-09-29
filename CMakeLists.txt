@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(rtk_graphical VERSION 1.0.0 LANGUAGES CXX)
+project(rtk_graphical VERSION 1.2.1 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
@@ -10,33 +10,6 @@ if(APPLE)
 endif()
 
 option(RTK_REGENERATE_SHADERS "Regenerate embedded SPIR-V shaders" ON)
-
-set(STB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/stb")
-
-set(STB_IMAGE_HEADER "${STB_DIR}/stb_image.h")
-
-if(NOT EXISTS "${STB_IMAGE_HEADER}")
-    message(STATUS "Downloading stb_image.h...")
-
-    file(MAKE_DIRECTORY "${STB_DIR}")
-
-    file(DOWNLOAD "https://raw.githubusercontent.com/nothings/stb/master/stb_image.h" "${STB_IMAGE_HEADER}" STATUS STB_DOWNLOAD_STATUS)
-
-    list(GET STB_DOWNLOAD_STATUS 0 STB_DOWNLOAD_ERROR)
-
-if(NOT STB_DOWNLOAD_ERROR EQUAL 0)
-        message(FATAL_ERROR "Failed to download stb_image.h")
-    endif()
-endif()
-
-set(STB_IMAGE_SOURCE "${STB_DIR}/stb_image.cpp")
-if(NOT EXISTS "${STB_IMAGE_SOURCE}")
-    file(WRITE "${STB_IMAGE_SOURCE}" "#define STB_IMAGE_IMPLEMENTATION\n#include \"stb_image.h\"\n")
-endif()
-
-# --------------------------------------------------------------------
-# Sources
-# --------------------------------------------------------------------
 
 file(GLOB_RECURSE RTK_GRAPHICAL_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
@@ -63,8 +36,11 @@ set_target_properties(rtk_graphical PROPERTIES OUTPUT_NAME rtk_graphical VERSION
 target_compile_features(rtk_graphical PUBLIC cxx_std_20)
 
 target_include_directories(
-    rtk_graphical PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${STB_DIR}")
+    rtk_graphical PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(rtk_graphical PRIVATE $<$<CONFIG:Debug>:-Wall> $<$<CONFIG:Debug>:-Wextra> $<$<CONFIG:Release>:-O3>)
@@ -72,6 +48,14 @@ endif()
 
 find_package(Vulkan REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(Stb REQUIRED)
+find_path(MINIAUDIO_INCLUDE_DIR NAMES miniaudio.h REQUIRED)
+
+target_include_directories(
+    rtk_graphical PRIVATE
+    "${Stb_INCLUDE_DIR}"
+    "${MINIAUDIO_INCLUDE_DIR}"
+)
 
 target_link_libraries(rtk_graphical PUBLIC Vulkan::Vulkan glm::glm)
 
@@ -212,5 +196,7 @@ install(EXPORT rtkGraphicalTargets FILE rtkGraphicalTargets.cmake NAMESPACE rtk:
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/rtk_graphicalConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/rtk_graphicalConfigVersion.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/rtk_graphical")
 add_executable(graphical_test test/manyTexture.cpp)
+
 target_link_libraries(graphical_test PRIVATE rtk_graphical)
+
 target_include_directories(graphical_test PRIVATE src include)

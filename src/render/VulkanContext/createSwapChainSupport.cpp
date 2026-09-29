@@ -30,7 +30,7 @@ namespace rtk
         if (capabilities.currentExtent.width != UINT32_MAX)
             return capabilities.currentExtent;
         else {
-            VkExtent2D actualExtent = {_width, _height};
+            VkExtent2D actualExtent = {_window.getWindowSizeWidth(), _window.getWindowSizeHeight()};
             actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
             actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
             return actualExtent;
@@ -111,10 +111,19 @@ namespace rtk
 
     void VulkanContext::cleanupSwapChain()
     {
-        for (auto imageView : _swapChainImageViews)
-            vkDestroyImageView(_device, imageView, nullptr);
-        if (_swapChain)
+        for (VkImageView imageView : _swapChainImageViews) {
+            if (imageView != VK_NULL_HANDLE) {
+                vkDestroyImageView(_device, imageView, nullptr);
+            }
+        }
+
+        _swapChainImageViews.clear();
+        _swapChainImages.clear();
+
+        if (_swapChain != VK_NULL_HANDLE) {
             vkDestroySwapchainKHR(_device, _swapChain, nullptr);
+            _swapChain = VK_NULL_HANDLE;
+        }
     }
 
     void VulkanContext::recreateSwapChain()

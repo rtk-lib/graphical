@@ -67,6 +67,11 @@ namespace rtk
              */
             bool pollEvents(rtk::Event &rtkEvent);
 
+            void setWindowSize(uint32_t width, uint32_t height) {
+                _width = width;
+                _height = height;
+            }
+
             const uint32_t &getWindowSizeWidth(){return _width;};
             const uint32_t &getWindowSizeHeight(){return _height;};
 
@@ -78,7 +83,7 @@ namespace rtk
             VkSurfaceKHR _surface;
             bool _isOpen;
 
-            const uint32_t _width;
-            const uint32_t _height;
+            uint32_t _width;
+            uint32_t _height;
     };
 }
