@@ -1,5 +1,7 @@
 #pragma once
 
+namespace rtk {
+
 class SoundManager;
 
 class Sound {
@@ -16,3 +18,5 @@ public:
     int getGeneration() const { return generation; }
     bool isValid() const { return index != -1 && generation != -1; }
 };
+
+} // namespace rtk

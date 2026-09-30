@@ -16,7 +16,7 @@ namespace rtk
             }
 
         private:
-            static constexpr uint32_t INVALID_HANDLE = std::numeric_limits<uint32_t>::max() + 1;
+            static constexpr uint32_t INVALID_HANDLE = std::numeric_limits<uint32_t>::max();
 
             explicit Texture(uint32_t handle) : _handle(handle) {}
 
