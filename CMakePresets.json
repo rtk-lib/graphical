@@ -1,0 +1,41 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 16,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "vcpkg-base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "linux",
+      "displayName": "Linux (Makefiles)",
+      "inherits": "vcpkg-base",
+      "generator": "Unix Makefiles"
+    },
+    {
+      "name": "windows",
+      "displayName": "Windows (Visual Studio)",
+      "inherits": "vcpkg-base",
+      "generator": "Visual Studio 17 2022"
+    },
+    {
+      "name": "macos",
+      "displayName": "macOS (Makefiles)",
+      "inherits": "vcpkg-base",
+      "generator": "Unix Makefiles"
+    },
+    {
+      "name": "default",
+      "displayName": "Default Config (Linux)",
+      "inherits": "linux"
+    }
+  ]
+}

@@ -9,7 +9,7 @@ if(APPLE)
     enable_language(OBJCXX)
 endif()
 
-option(RTK_REGENERATE_SHADERS "Regenerate embedded SPIR-V shaders" ON)
+option(RTK_REGENERATE_SHADERS "Regenerate embedded SPIR-V shaders" OFF)
 
 file(GLOB_RECURSE RTK_GRAPHICAL_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
@@ -195,8 +195,11 @@ install(EXPORT rtkGraphicalTargets FILE rtkGraphicalTargets.cmake NAMESPACE rtk:
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/rtk_graphicalConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/rtk_graphicalConfigVersion.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/rtk_graphical")
-add_executable(graphical_test test/manyTexture.cpp)
+option(RTK_BUILD_TESTS "Build graphical tests" OFF)
+if(RTK_BUILD_TESTS)
+    add_executable(graphical_test test/manyTexture.cpp)
 
-target_link_libraries(graphical_test PRIVATE rtk_graphical)
+    target_link_libraries(graphical_test PRIVATE rtk_graphical)
 
-target_include_directories(graphical_test PRIVATE src include)
+    target_include_directories(graphical_test PRIVATE src include)
+endif()
