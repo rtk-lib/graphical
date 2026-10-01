@@ -24,7 +24,7 @@ namespace rtk {
             _textureCache[missingPath] = MISSING_TEXTURE_IDX;
             updateDescriptorSet(MISSING_TEXTURE_IDX, data.view);
 
-            missingTexture = Texture(MISSING_TEXTURE_IDX);
+            missingTexture = Texture(MISSING_TEXTURE_IDX, {static_cast<float>(data.width), static_cast<float>(data.height)});
         } catch (...) {
             VkDevice device = _context.getDevice();
             for (const auto& tex : _textures) {
@@ -136,7 +136,7 @@ namespace rtk {
     rtk::Texture TextureManager::loadTexture(const std::string& filepath)
     {
         if (_textureCache.find(filepath) != _textureCache.end())
-            return Texture(_textureCache[filepath]);
+            return Texture(_textureCache[filepath], {static_cast<float>(_textures[_textureCache[filepath]].width), static_cast<float>(_textures[_textureCache[filepath]].height)});
 
         uint32_t index = static_cast<uint32_t>(_textures.size());
 
@@ -154,10 +154,10 @@ namespace rtk {
         {
             LOG_WARN(e.what());
             LOG_WARN("Missing texture will be load");
-            return Texture(MISSING_TEXTURE_IDX);
+            return missingTexture;
         }
 
-        return Texture(index);
+        return Texture(index, {static_cast<float>(_textures[index].width), static_cast<float>(_textures[index].height)});
     }
 
     rtk::Texture TextureManager::loadTextureFromMemory(
@@ -334,11 +334,13 @@ namespace rtk {
             textureData.image = image;
             textureData.memory = imageMemory;
             textureData.view = imageView;
+            textureData.width = width;
+            textureData.height = height;
 
             _textures.push_back(textureData);
             updateDescriptorSet(index, imageView);
 
-            return Texture(index);
+            return Texture(index, {static_cast<float>(_textures[index].width), static_cast<float>(_textures[index].height)});
         }
         catch (const std::exception& error) {
             if (mappedMemory != nullptr)
@@ -362,7 +364,7 @@ namespace rtk {
             LOG_WARN(error.what());
             LOG_WARN("Missing texture will be loaded");
 
-            return Texture(MISSING_TEXTURE_IDX);
+            return missingTexture;
         }
     }
     const TextureData& TextureManager::getTexture(uint32_t id) const
@@ -561,6 +563,8 @@ namespace rtk {
             texData.image = image;
             texData.memory = imageMemory;
             texData.view = imageView;
+            texData.width = texWidth;
+            texData.height = texHeight;
 
             return texData;
         } catch (const std::exception& error) {
