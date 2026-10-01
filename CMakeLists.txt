@@ -76,6 +76,11 @@ if(APPLE)
 
     target_compile_definitions(rtk_graphical PRIVATE VK_USE_PLATFORM_METAL_EXT)
 
+    add_custom_command(TARGET rtk_graphical POST_BUILD
+        COMMAND sh -c "VULKAN_LINKED=$$(otool -L $<TARGET_FILE:rtk_graphical> | grep libvulkan | awk '{print $$1}') && if [ ! -z \"$$VULKAN_LINKED\" ]; then install_name_tool -change \"$$VULKAN_LINKED\" @rpath/libvulkan.1.dylib $<TARGET_FILE:rtk_graphical>; fi"
+        COMMENT "Remplacement de la dépendance Vulkan stricte par @rpath/libvulkan.1.dylib"
+    )
+
 elseif(WIN32)
 
     target_compile_definitions(rtk_graphical PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
