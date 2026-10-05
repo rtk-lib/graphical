@@ -68,7 +68,7 @@ if(APPLE)
 
     find_library(METAL_LIBRARY Metal REQUIRED)
 
-    target_link_libraries(rtk_graphical PRIVATE ${COCOA_LIBRARY} ${QUARTZCORE_LIBRARY} ${COREGRAPHICS_LIBRARY} ${METAL_LIBRARY})
+    target_link_libraries(rtk_graphical PRIVATE ${COCOA_LIBRARY} ${QUARTZCORE_LIBRARY} ${COREGRAPHICS_LIBRARY} ${METAL_LIBRARY} "-framework GameController")
 
     set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowMac.mm" PROPERTIES LANGUAGE OBJCXX)
 
@@ -84,6 +84,7 @@ if(APPLE)
 elseif(WIN32)
 
     target_compile_definitions(rtk_graphical PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+    target_link_libraries(rtk_graphical PRIVATE xinput)
 
 elseif(UNIX)
 
