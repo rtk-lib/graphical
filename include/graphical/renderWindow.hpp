@@ -72,6 +72,12 @@ namespace rtk {
                 return _textures.loadTexture(textureFile);
             }
 
+            [[nodiscard]]
+            rtk::Texture loadTextureFromMemory(std::span<const std::uint8_t> pixels, uint32_t width, uint32_t height)
+            {
+                return _textures.loadTextureFromMemory(pixels, width, height);
+            }
+
             /**************\
             * Font Manager *
             \**************/
