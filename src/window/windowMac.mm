@@ -6,6 +6,7 @@
 #import <Cocoa/Cocoa.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <QuartzCore/CAMetalLayer.h>
+#import <GameController/GameController.h>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_metal.h>
 #include <algorithm>
@@ -208,7 +209,58 @@ namespace rtk {
         std::fill(std::begin(rtkEvent._mouseButtonPressed), std::end(rtkEvent._mouseButtonPressed), false);
         std::fill(std::begin(rtkEvent._mouseButtonReleased), std::end(rtkEvent._mouseButtonReleased), false);
         if (!_display) return false;
+        std::fill(std::begin(rtkEvent._gamepadButtonReleased), std::end(rtkEvent._gamepadButtonReleased), false);
+
         @autoreleasepool {
+            NSArray<GCController *> *controllers = [GCController controllers];
+            for (int i = 0; i < 4; i++) {
+                if (i < controllers.count) {
+                    GCController *controller = controllers[i];
+                    rtkEvent._gamepadConnected[i] = true;
+                    if (controller.extendedGamepad) {
+                        GCExtendedGamepad *pad = controller.extendedGamepad;
+                        
+                        auto checkBtn = [&](GCControllerButtonInput *btn, GamepadButton rtkBtn) {
+                            if (!btn) return;
+                            bool pressed = btn.isPressed;
+                            if (pressed && !rtkEvent._gamepadButtonPressed[i][static_cast<std::size_t>(rtkBtn)]) {
+                                rtkEvent._gamepadButtonPressed[i][static_cast<std::size_t>(rtkBtn)] = true;
+                            } else if (!pressed && rtkEvent._gamepadButtonPressed[i][static_cast<std::size_t>(rtkBtn)]) {
+                                rtkEvent._gamepadButtonPressed[i][static_cast<std::size_t>(rtkBtn)] = false;
+                                rtkEvent._gamepadButtonReleased[i][static_cast<std::size_t>(rtkBtn)] = true;
+                            }
+                        };
+
+                        checkBtn(pad.buttonA, GamepadButton::A);
+                        checkBtn(pad.buttonB, GamepadButton::B);
+                        checkBtn(pad.buttonX, GamepadButton::X);
+                        checkBtn(pad.buttonY, GamepadButton::Y);
+                        checkBtn(pad.dpad.up, GamepadButton::DpadUp);
+                        checkBtn(pad.dpad.down, GamepadButton::DpadDown);
+                        checkBtn(pad.dpad.left, GamepadButton::DpadLeft);
+                        checkBtn(pad.dpad.right, GamepadButton::DpadRight);
+                        checkBtn(pad.leftShoulder, GamepadButton::L1);
+                        checkBtn(pad.rightShoulder, GamepadButton::R1);
+                        
+                        if (@available(macOS 10.15, *)) {
+                            checkBtn(pad.leftThumbstickButton, GamepadButton::L3);
+                            checkBtn(pad.rightThumbstickButton, GamepadButton::R3);
+                            checkBtn(pad.buttonMenu, GamepadButton::Start);
+                            checkBtn(pad.buttonOptions, GamepadButton::Select);
+                        }
+
+                        rtkEvent._gamepadAxis[i][static_cast<std::size_t>(GamepadAxis::LeftX)] = pad.leftThumbstick.xAxis.value;
+                        rtkEvent._gamepadAxis[i][static_cast<std::size_t>(GamepadAxis::LeftY)] = pad.leftThumbstick.yAxis.value;
+                        rtkEvent._gamepadAxis[i][static_cast<std::size_t>(GamepadAxis::RightX)] = pad.rightThumbstick.xAxis.value;
+                        rtkEvent._gamepadAxis[i][static_cast<std::size_t>(GamepadAxis::RightY)] = pad.rightThumbstick.yAxis.value;
+                        rtkEvent._gamepadAxis[i][static_cast<std::size_t>(GamepadAxis::L2)] = pad.leftTrigger.value;
+                        rtkEvent._gamepadAxis[i][static_cast<std::size_t>(GamepadAxis::R2)] = pad.rightTrigger.value;
+                    }
+                } else {
+                    rtkEvent._gamepadConnected[i] = false;
+                }
+            }
+
             RtkWindowDelegate* state = getState(_display);
             NSView* view = state.ownedWindow.contentView;
             NSRect pixels = [view convertRectToBacking:view.bounds];

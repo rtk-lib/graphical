@@ -2,6 +2,8 @@
 #include "Logger/Logger.hpp"
 #include <cstring>
 #include <windows.h>
+#include <Xinput.h>
+#pragma comment(lib, "Xinput.lib")
 
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
@@ -93,6 +95,56 @@ namespace rtk
         MSG msg = {};
         memset(rtkEvent._keyReleased, 0, RTK_KEYS_TAB_SIZE);
         memset(rtkEvent._mouseButtonReleased, 0, 3);
+        memset(rtkEvent._gamepadButtonReleased, 0, sizeof(rtkEvent._gamepadButtonReleased));
+
+        for (DWORD i = 0; i < 4; i++) {
+            XINPUT_STATE state;
+            ZeroMemory(&state, sizeof(XINPUT_STATE));
+
+            if (XInputGetState(i, &state) == ERROR_SUCCESS) {
+                rtkEvent._gamepadConnected[i] = true;
+
+                auto checkButton = [&](WORD xinputButton, GamepadButton rtkBtn) {
+                    bool pressed = (state.Gamepad.wButtons & xinputButton) != 0;
+                    if (pressed && !rtkEvent._gamepadButtonPressed[i][static_cast<std::size_t>(rtkBtn)]) {
+                        rtkEvent._gamepadButtonPressed[i][static_cast<std::size_t>(rtkBtn)] = true;
+                    } else if (!pressed && rtkEvent._gamepadButtonPressed[i][static_cast<std::size_t>(rtkBtn)]) {
+                        rtkEvent._gamepadButtonPressed[i][static_cast<std::size_t>(rtkBtn)] = false;
+                        rtkEvent._gamepadButtonReleased[i][static_cast<std::size_t>(rtkBtn)] = true;
+                    }
+                };
+
+                checkButton(XINPUT_GAMEPAD_A, GamepadButton::A);
+                checkButton(XINPUT_GAMEPAD_B, GamepadButton::B);
+                checkButton(XINPUT_GAMEPAD_X, GamepadButton::X);
+                checkButton(XINPUT_GAMEPAD_Y, GamepadButton::Y);
+                checkButton(XINPUT_GAMEPAD_DPAD_UP, GamepadButton::DpadUp);
+                checkButton(XINPUT_GAMEPAD_DPAD_DOWN, GamepadButton::DpadDown);
+                checkButton(XINPUT_GAMEPAD_DPAD_LEFT, GamepadButton::DpadLeft);
+                checkButton(XINPUT_GAMEPAD_DPAD_RIGHT, GamepadButton::DpadRight);
+                checkButton(XINPUT_GAMEPAD_LEFT_SHOULDER, GamepadButton::L1);
+                checkButton(XINPUT_GAMEPAD_RIGHT_SHOULDER, GamepadButton::R1);
+                checkButton(XINPUT_GAMEPAD_LEFT_THUMB, GamepadButton::L3);
+                checkButton(XINPUT_GAMEPAD_RIGHT_THUMB, GamepadButton::R3);
+                checkButton(XINPUT_GAMEPAD_START, GamepadButton::Start);
+                checkButton(XINPUT_GAMEPAD_BACK, GamepadButton::Select);
+
+                rtkEvent._gamepadAxis[i][static_cast<std::size_t>(GamepadAxis::LeftX)] = 
+                    fmaxf(-1.0f, (float)state.Gamepad.sThumbLX / 32767.0f);
+                rtkEvent._gamepadAxis[i][static_cast<std::size_t>(GamepadAxis::LeftY)] = 
+                    fmaxf(-1.0f, (float)state.Gamepad.sThumbLY / 32767.0f);
+                rtkEvent._gamepadAxis[i][static_cast<std::size_t>(GamepadAxis::RightX)] = 
+                    fmaxf(-1.0f, (float)state.Gamepad.sThumbRX / 32767.0f);
+                rtkEvent._gamepadAxis[i][static_cast<std::size_t>(GamepadAxis::RightY)] = 
+                    fmaxf(-1.0f, (float)state.Gamepad.sThumbRY / 32767.0f);
+                rtkEvent._gamepadAxis[i][static_cast<std::size_t>(GamepadAxis::L2)] = 
+                    (float)state.Gamepad.bLeftTrigger / 255.0f;
+                rtkEvent._gamepadAxis[i][static_cast<std::size_t>(GamepadAxis::R2)] = 
+                    (float)state.Gamepad.bRightTrigger / 255.0f;
+            } else {
+                rtkEvent._gamepadConnected[i] = false;
+            }
+        }
 
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) {
