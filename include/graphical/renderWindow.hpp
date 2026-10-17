@@ -56,6 +56,15 @@ namespace rtk {
                 return _window.pollEvents(event);
             }
 
+            /**
+             * @return return the windowSize width - height
+            */
+            [[nodiscard]]
+            inline rtk::vec2 getWindowSize()
+            {
+                return {static_cast<float>(_window.getWindowSizeWidth()), static_cast<float>(_window.getWindowSizeHeight())};
+            }
+
             /*****************\
             * Texture Manager *
             \*****************/
