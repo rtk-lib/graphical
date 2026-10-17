@@ -13,19 +13,27 @@ permissions:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: ${{ matrix.platform }} (${{ matrix.linkage }})
     runs-on: ${{ matrix.os }}
+
+    env:
+      VCPKG_FORCE_SYSTEM_BINARIES: 1
+      ARTIFACT_NAME: rtk_graphical-${{ matrix.platform }}${{ matrix.linkage == 'static' && '-static' || '' }}
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            artifact_name: rtk_graphical-linux
-          - os: windows-latest
-            artifact_name: rtk_graphical-windows
-          - os: macos-latest
-            artifact_name: rtk_graphical-macos
+          - { platform: linux-x86_64, os: ubuntu-24.04, linkage: shared }
+          - { platform: linux-x86_64, os: ubuntu-24.04, linkage: static }
+          - { platform: linux-arm64, os: ubuntu-24.04-arm, linkage: shared }
+          - { platform: linux-arm64, os: ubuntu-24.04-arm, linkage: static }
+          - { platform: macos-arm64, os: macos-15, linkage: shared }
+          - { platform: macos-arm64, os: macos-15, linkage: static }
+          - { platform: macos-x86_64, os: macos-15-intel, linkage: shared }
+          - { platform: macos-x86_64, os: macos-15-intel, linkage: static }
+          - { platform: windows-x86_64, os: windows-2025, linkage: shared }
+          - { platform: windows-x86_64, os: windows-2025, linkage: static, triplet: x64-windows-static, msvc_runtime: MultiThreaded }
 
     steps:
       - name: Checkout code
@@ -57,6 +65,10 @@ jobs:
           -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake"
           -DCMAKE_BUILD_TYPE=Release
           -DRTK_REGENERATE_SHADERS=OFF
+          -DRTK_BUILD_SHARED=${{ matrix.linkage == 'shared' && 'ON' || 'OFF' }}
+          -DRTK_BUILD_STATIC=${{ matrix.linkage == 'static' && 'ON' || 'OFF' }}
+          ${{ matrix.triplet && format('-DVCPKG_TARGET_TRIPLET={0}', matrix.triplet) || '' }}
+          ${{ matrix.msvc_runtime && format('-DCMAKE_MSVC_RUNTIME_LIBRARY={0}', matrix.msvc_runtime) || '' }}
 
       - name: Build
         run: cmake --build build --config Release
@@ -68,12 +80,20 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           cd artifact_install
-          tar -czvf ../${{ matrix.artifact_name }}.tar.gz .
+          tar -czvf ../${{ env.ARTIFACT_NAME }}.tar.gz .
 
       - name: Zip Artifacts (Windows)
         if: runner.os == 'Windows'
         run: |
-          Compress-Archive -Path "artifact_install\*" -DestinationPath "${{ matrix.artifact_name }}.zip"
+          Compress-Archive -Path "artifact_install\*" -DestinationPath "${{ env.ARTIFACT_NAME }}.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: |
+            *.tar.gz
+            *.zip
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
