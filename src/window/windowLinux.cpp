@@ -23,7 +23,7 @@ namespace rtk
         if (!dpy) {
             LOG_ERROR("Failed to open X display");
             _isOpen = false;
-            return;
+            std::runtime_error("Cannot create Vulkan surface: X11 display is null");
         }
 
         Bool supported = False;
@@ -92,7 +92,7 @@ namespace rtk
                 continue;
             }
             rtkEvent._gamepadConnected[i] = true;
-            
+
             struct js_event jse;
             while (read(_joystickFds[i], &jse, sizeof(jse)) > 0) {
                 jse.type &= ~JS_EVENT_INIT;
