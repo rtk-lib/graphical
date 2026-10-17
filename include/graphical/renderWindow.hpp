@@ -3,7 +3,7 @@
 #include "render/SpriteRenderer.hpp"
 #include "sprite/sprite.hpp"
 #include <glm/gtc/matrix_transform.hpp>
-#include "utils/vec2.hpp"
+#include "../utils/vec2.hpp"
 #include "font/fontManager.hpp"
 #include "text/text.hpp"
 #include <span>
@@ -56,6 +56,15 @@ namespace rtk {
                 return _window.pollEvents(event);
             }
 
+            /**
+             * @return return the windowSize width - height
+            */
+            [[nodiscard]]
+            inline rtk::vec2 getWindowSize()
+            {
+                return {static_cast<float>(_window.getWindowSizeWidth()), static_cast<float>(_window.getWindowSizeHeight())};
+            }
+
             /*****************\
             * Texture Manager *
             \*****************/
@@ -70,6 +79,12 @@ namespace rtk {
             rtk::Texture loadTexture(const char *textureFile)
             {
                 return _textures.loadTexture(textureFile);
+            }
+
+            [[nodiscard]]
+            rtk::Texture loadTextureFromMemory(std::span<const std::uint8_t> pixels, uint32_t width, uint32_t height)
+            {
+                return _textures.loadTextureFromMemory(pixels, width, height);
             }
 
             /**************\

@@ -5,8 +5,8 @@
 
 namespace rtk {
 
-    #define FLIP_X 1u << 0
-    #define FLIP_Y 1u << 1
+    inline constexpr uint32_t FLIP_X = 1u << 0;
+    inline constexpr uint32_t FLIP_Y = 1u << 1;
 
     class Sprite {
         public:

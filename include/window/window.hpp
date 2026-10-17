@@ -85,5 +85,6 @@ namespace rtk
 
             uint32_t _width;
             uint32_t _height;
+            int _joystickFds[4]{-1, -1, -1, -1};
     };
 }

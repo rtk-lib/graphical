@@ -7,26 +7,20 @@
 #include <list>
 
 #include "audio/sound.hpp"
-#include <miniaudio.h>
 
+namespace rtk {
 
 class SoundManager {
 private:
-    struct SoundData {
-        ma_sound templateAudio;
-        std::list<ma_sound> activeVoices;
-        int generation = 0;
-        std::string path;
-        bool active = false;
-    };
-
-    ma_engine engine;
-    std::unordered_map<std::string, int> pathToIndex;
-    std::vector<std::unique_ptr<SoundData>> sounds;
+    struct Impl;
+    std::unique_ptr<Impl> pimpl;
 
 public:
     SoundManager();
     ~SoundManager();
+
+    SoundManager(const SoundManager&) = delete;
+    SoundManager& operator=(const SoundManager&) = delete;
 
     Sound addSound(const std::string& path);
     Sound getSound(int index);
@@ -37,3 +31,5 @@ public:
 
     void update(); 
 };
+
+} // namespace rtk

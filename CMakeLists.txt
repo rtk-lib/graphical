@@ -9,7 +9,7 @@ if(APPLE)
     enable_language(OBJCXX)
 endif()
 
-option(RTK_REGENERATE_SHADERS "Regenerate embedded SPIR-V shaders" ON)
+option(RTK_REGENERATE_SHADERS "Regenerate embedded SPIR-V shaders" OFF)
 
 file(GLOB_RECURSE RTK_GRAPHICAL_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
@@ -26,24 +26,11 @@ else()
     message(FATAL_ERROR "Unsupported platform")
 endif()
 
-add_library(rtk_graphical SHARED ${RTK_GRAPHICAL_SOURCES})
+option(RTK_BUILD_SHARED "Build the shared library" ON)
+option(RTK_BUILD_STATIC "Build the static library (single binary, no rtk_graphical shared lib to ship)" OFF)
 
-add_library(rtk::graphical ALIAS rtk_graphical)
-
-set_target_properties(rtk_graphical PROPERTIES OUTPUT_NAME rtk_graphical VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR}
-                                               POSITION_INDEPENDENT_CODE ON WINDOWS_EXPORT_ALL_SYMBOLS ON)
-
-target_compile_features(rtk_graphical PUBLIC cxx_std_20)
-
-target_include_directories(
-    rtk_graphical PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
-)
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(rtk_graphical PRIVATE $<$<CONFIG:Debug>:-Wall> $<$<CONFIG:Debug>:-Wextra> $<$<CONFIG:Release>:-O3>)
+if(NOT RTK_BUILD_SHARED AND NOT RTK_BUILD_STATIC)
+    message(FATAL_ERROR "Enable at least one of RTK_BUILD_SHARED and RTK_BUILD_STATIC")
 endif()
 
 find_package(Vulkan REQUIRED)
@@ -51,41 +38,88 @@ find_package(glm CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_path(MINIAUDIO_INCLUDE_DIR NAMES miniaudio.h REQUIRED)
 
-target_include_directories(
-    rtk_graphical PRIVATE
-    "${Stb_INCLUDE_DIR}"
-    "${MINIAUDIO_INCLUDE_DIR}"
-)
+if(UNIX AND NOT APPLE)
+    find_package(X11 REQUIRED)
+endif()
 
-target_link_libraries(rtk_graphical PUBLIC Vulkan::Vulkan glm::glm)
+set(RTK_TARGETS)
+
+if(RTK_BUILD_SHARED)
+    add_library(rtk_graphical SHARED ${RTK_GRAPHICAL_SOURCES})
+    set_target_properties(rtk_graphical PROPERTIES OUTPUT_NAME rtk_graphical VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR}
+                                                   WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    list(APPEND RTK_TARGETS rtk_graphical)
+endif()
+
+if(RTK_BUILD_STATIC)
+    add_library(rtk_graphical_static STATIC ${RTK_GRAPHICAL_SOURCES})
+    # on Windows the import lib of the shared build is already rtk_graphical.lib
+    if(WIN32)
+        set_target_properties(rtk_graphical_static PROPERTIES OUTPUT_NAME rtk_graphical_static)
+    else()
+        set_target_properties(rtk_graphical_static PROPERTIES OUTPUT_NAME rtk_graphical)
+    endif()
+    list(APPEND RTK_TARGETS rtk_graphical_static)
+endif()
+
+list(GET RTK_TARGETS 0 RTK_MAIN_TARGET)
+add_library(rtk::graphical ALIAS ${RTK_MAIN_TARGET})
+
+# a static lib does not link its dependencies, they become the consumer's: PUBLIC
+foreach(RTK_TARGET IN LISTS RTK_TARGETS)
+    if(RTK_TARGET STREQUAL "rtk_graphical_static")
+        set(RTK_LINK_SCOPE PUBLIC)
+    else()
+        set(RTK_LINK_SCOPE PRIVATE)
+    endif()
+
+    set_target_properties(${RTK_TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+    target_compile_features(${RTK_TARGET} PUBLIC cxx_std_20)
+
+    target_include_directories(
+        ${RTK_TARGET} PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(${RTK_TARGET} PRIVATE $<$<CONFIG:Debug>:-Wall> $<$<CONFIG:Debug>:-Wextra> $<$<CONFIG:Release>:-O3>)
+    endif()
+
+    target_include_directories(
+        ${RTK_TARGET} PRIVATE
+        "${Stb_INCLUDE_DIR}"
+        "${MINIAUDIO_INCLUDE_DIR}"
+    )
+
+    target_link_libraries(${RTK_TARGET} PUBLIC Vulkan::Vulkan glm::glm)
+
+    if(APPLE)
+        target_link_libraries(${RTK_TARGET} ${RTK_LINK_SCOPE}
+            "-framework Cocoa" "-framework QuartzCore" "-framework CoreGraphics" "-framework Metal" "-framework GameController")
+
+        set_target_properties(${RTK_TARGET} PROPERTIES OBJCXX_STANDARD 20 OBJCXX_STANDARD_REQUIRED YES)
+
+        target_compile_definitions(${RTK_TARGET} PRIVATE VK_USE_PLATFORM_METAL_EXT)
+    elseif(WIN32)
+        target_compile_definitions(${RTK_TARGET} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+        target_link_libraries(${RTK_TARGET} ${RTK_LINK_SCOPE} xinput)
+    elseif(UNIX)
+        target_link_libraries(${RTK_TARGET} ${RTK_LINK_SCOPE} X11::X11)
+    endif()
+endforeach()
 
 if(APPLE)
-    find_library(COCOA_LIBRARY Cocoa REQUIRED)
-
-    find_library(QUARTZCORE_LIBRARY QuartzCore REQUIRED)
-
-    find_library(COREGRAPHICS_LIBRARY CoreGraphics REQUIRED)
-
-    find_library(METAL_LIBRARY Metal REQUIRED)
-
-    target_link_libraries(rtk_graphical PRIVATE ${COCOA_LIBRARY} ${QUARTZCORE_LIBRARY} ${COREGRAPHICS_LIBRARY} ${METAL_LIBRARY})
-
     set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/window/windowMac.mm" PROPERTIES LANGUAGE OBJCXX)
 
-    set_target_properties(rtk_graphical PROPERTIES OBJCXX_STANDARD 20 OBJCXX_STANDARD_REQUIRED YES)
-
-    target_compile_definitions(rtk_graphical PRIVATE VK_USE_PLATFORM_METAL_EXT)
-
-elseif(WIN32)
-
-    target_compile_definitions(rtk_graphical PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
-
-elseif(UNIX)
-
-    find_package(X11 REQUIRED)
-
-    target_link_libraries(rtk_graphical PRIVATE X11::X11)
-
+    if(RTK_BUILD_SHARED)
+        add_custom_command(TARGET rtk_graphical POST_BUILD
+            COMMAND sh -c "VULKAN_LINKED=$(otool -L $<TARGET_FILE:rtk_graphical> | grep libvulkan | awk '{print $1}'); if [ ! -z \"$VULKAN_LINKED\" ]; then install_name_tool -change \"$VULKAN_LINKED\" @rpath/libvulkan.1.dylib $<TARGET_FILE:rtk_graphical>; fi"
+            VERBATIM
+        )
+    endif()
 endif()
 
 set(RTK_GENERATED_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
@@ -135,7 +169,9 @@ if(RTK_REGENERATE_SHADERS)
         list(APPEND RTK_GENERATED_SHADER_HEADERS "${SHADER_HEADER_OUTPUT}")
     endforeach()
 
-    target_include_directories(rtk_graphical PRIVATE "${RTK_GENERATED_DIRECTORY}")
+    foreach(RTK_TARGET IN LISTS RTK_TARGETS)
+        target_include_directories(${RTK_TARGET} PRIVATE "${RTK_GENERATED_DIRECTORY}")
+    endforeach()
 
     add_custom_target(
         update_precompiled_shaders COMMAND "${CMAKE_COMMAND}" -E copy_directory "${RTK_GENERATED_DIRECTORY}"
@@ -158,19 +194,25 @@ else()
         list(APPEND RTK_GENERATED_SHADER_HEADERS "${PRECOMPILED_HEADER}")
     endforeach()
 
-    target_include_directories(rtk_graphical PRIVATE "${RTK_PRECOMPILED_SHADER_DIRECTORY}")
+    foreach(RTK_TARGET IN LISTS RTK_TARGETS)
+        target_include_directories(${RTK_TARGET} PRIVATE "${RTK_PRECOMPILED_SHADER_DIRECTORY}")
+    endforeach()
 endif()
 
-target_sources(rtk_graphical PRIVATE ${RTK_GENERATED_SHADER_HEADERS})
+foreach(RTK_TARGET IN LISTS RTK_TARGETS)
+    target_sources(${RTK_TARGET} PRIVATE ${RTK_GENERATED_SHADER_HEADERS})
+endforeach()
 
 set_source_files_properties(${RTK_GENERATED_SHADER_HEADERS} PROPERTIES GENERATED TRUE)
 
 add_custom_target(rtk_graphical_shaders DEPENDS ${RTK_GENERATED_SHADER_HEADERS})
 
-add_dependencies(rtk_graphical rtk_graphical_shaders)
+foreach(RTK_TARGET IN LISTS RTK_TARGETS)
+    add_dependencies(${RTK_TARGET} rtk_graphical_shaders)
+endforeach()
 
 install(
-    TARGETS rtk_graphical
+    TARGETS ${RTK_TARGETS}
     EXPORT rtkGraphicalTargets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -195,8 +237,11 @@ install(EXPORT rtkGraphicalTargets FILE rtkGraphicalTargets.cmake NAMESPACE rtk:
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/rtk_graphicalConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/rtk_graphicalConfigVersion.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/rtk_graphical")
-add_executable(graphical_test test/manyTexture.cpp)
+option(RTK_BUILD_TESTS "Build graphical tests" OFF)
+if(RTK_BUILD_TESTS)
+    add_executable(graphical_test test/manyTexture.cpp)
 
-target_link_libraries(graphical_test PRIVATE rtk_graphical)
+    target_link_libraries(graphical_test PRIVATE ${RTK_MAIN_TARGET})
 
-target_include_directories(graphical_test PRIVATE src include)
+    target_include_directories(graphical_test PRIVATE src include)
+endif()

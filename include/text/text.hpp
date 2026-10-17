@@ -2,7 +2,7 @@
 
 #include "font/font.hpp"
 #include "sprite/spriteData.hpp"
-#include "utils/vec2.hpp"
+#include "../utils/vec2.hpp"
 #include <string>
 #include <vector>
 #include <utility>

@@ -67,6 +67,29 @@ namespace rtk {
         ButtonCount = 3
     };
 
+    enum class GamepadButton : uint16_t {
+        Unknown = 0,
+        A, B, X, Y,
+        Cross = A, Circle = B, Square = X, Triangle = Y,
+        L1, R1,
+        L2, R2,
+        Select, Start,
+        L3, R3,
+        DpadUp, DpadDown, DpadLeft, DpadRight,
+        Home,
+        ButtonCount
+    };
+
+    enum class GamepadAxis : uint16_t {
+        LeftX = 0,
+        LeftY,
+        RightX,
+        RightY,
+        L2,
+        R2,
+        AxisCount
+    };
+
     class Event {
     private:
         bool _keyPressed[RTK_KEYS_TAB_SIZE]{};
@@ -76,6 +99,11 @@ namespace rtk {
         bool _mouseButtonReleased[3]{};
         int _mouseX{0};
         int _mouseY{0};
+
+        bool _gamepadButtonPressed[4][static_cast<std::size_t>(GamepadButton::ButtonCount)]{};
+        bool _gamepadButtonReleased[4][static_cast<std::size_t>(GamepadButton::ButtonCount)]{};
+        float _gamepadAxis[4][static_cast<std::size_t>(GamepadAxis::AxisCount)]{};
+        bool _gamepadConnected[4]{};
 
         static constexpr std::size_t keyToIndex(Key key)
         {
@@ -123,5 +151,25 @@ namespace rtk {
 
         [[nodiscard]] int getMouseX() const { return _mouseX; }
         [[nodiscard]] int getMouseY() const { return _mouseY; }
+
+        [[nodiscard]] bool isGamepadButtonPressed(int joystickId, GamepadButton button) const {
+            if (joystickId < 0 || joystickId >= 4 || button == GamepadButton::Unknown) return false;
+            return _gamepadButtonPressed[joystickId][static_cast<std::size_t>(button)];
+        }
+
+        [[nodiscard]] bool isGamepadButtonReleased(int joystickId, GamepadButton button) const {
+            if (joystickId < 0 || joystickId >= 4 || button == GamepadButton::Unknown) return false;
+            return _gamepadButtonReleased[joystickId][static_cast<std::size_t>(button)];
+        }
+
+        [[nodiscard]] float getGamepadAxis(int joystickId, GamepadAxis axis) const {
+            if (joystickId < 0 || joystickId >= 4) return 0.0f;
+            return _gamepadAxis[joystickId][static_cast<std::size_t>(axis)];
+        }
+
+        [[nodiscard]] bool isGamepadConnected(int joystickId) const {
+            if (joystickId < 0 || joystickId >= 4) return false;
+            return _gamepadConnected[joystickId];
+        }
     };
 }

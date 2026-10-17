@@ -3,7 +3,7 @@
 #include "render/VulkanContext.hpp"
 #include "texture/textureManager.hpp"
 
-#include "utils/vec2.hpp"
+#include "../utils/vec2.hpp"
 
 #include "sprite/sprite.hpp"
 

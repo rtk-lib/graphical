@@ -3,7 +3,7 @@
 #include "font/font.hpp"
 #include "sprite/spriteData.hpp"
 #include "texture/textureManager.hpp"
-#include "utils/vec2.hpp"
+#include "../utils/vec2.hpp"
 #include "text/text.hpp"
 #include <unordered_map>
 #include <string>
